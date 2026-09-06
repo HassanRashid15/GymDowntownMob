@@ -1,0 +1,32 @@
+# Keep EAS upload small — deps install on EAS servers
+node_modules/
+.expo/
+dist/
+web-build/
+.git/
+.cursor/
+agent-transcripts/
+terminals/
+
+# Local / junk assets that must not ship
+**/*.msi
+**/*.crdownload
+**/*.zip
+**/*.apk
+**/*.aab
+**/*.ipa
+
+# Env / secrets
+.env
+.env.*
+
+# Native folders if present
+/ios
+/android
+
+# Logs / caches
+*.log
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
