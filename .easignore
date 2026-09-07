@@ -1,32 +1,75 @@
-# Keep EAS upload small — deps install on EAS servers
-node_modules/
-.expo/
-dist/
-web-build/
-.git/
-.cursor/
-agent-transcripts/
-terminals/
+# When .easignore exists it replaces .gitignore for the upload.
 
-# Local / junk assets that must not ship
-**/*.msi
-**/*.crdownload
-**/*.zip
-**/*.apk
-**/*.aab
-**/*.ipa
+# dependencies
+node_modules
+node_modules/**
 
-# Env / secrets
-.env
-.env.*
+# Expo / build output
+.expo
+.expo/**
+dist
+dist/**
+web-build
+web-build/**
+expo-env.d.ts
 
-# Native folders if present
-/ios
-/android
+# VCS / editor / local tooling (.git must be excluded — it is ~850MB here)
+.git
+.git/**
+.cursor
+.cursor/**
+.vscode
+.vscode/**
+.idea
+.idea/**
+agent-transcripts
+agent-transcripts/**
+terminals
+terminals/**
+eas-archive-test
+eas-archive-test/**
 
-# Logs / caches
-*.log
+# Native
+.kotlin
+.kotlin/**
+ios
+android
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro / logs
 .metro-health-check*
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+*.log
+
+# OS / secrets
+.DS_Store
+*.pem
+.env
+.env.*
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# Large / junk binaries
+assets/*.msi
+assets/*.crdownload
+assets/mongodb-*
+*.msi
+*.crdownload
+*.zip
+*.7z
+*.rar
+*.apk
+*.aab
+*.ipa
+*.dmg
+*.exe
+*.iso
