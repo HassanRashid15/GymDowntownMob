@@ -15,13 +15,17 @@ import * as Linking from 'expo-linking';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import {
-  clearAuthCallbackUrlFromBrowser,
   consumeAuthCallbackUrl,
+  consumeVerificationFlowCompleted,
   consumeVerificationWelcomeSplashPlayed,
   getAuthUser,
   getCurrentUrlForAuthCallback,
+  getSession,
+  hasAuthCallbackTokens,
+  markVerificationFlowCompleted,
   normalizeEmail,
   onAuthStateChange,
+  peekVerificationFlowCompleted,
   replaceBrowserPath,
   setAwaitingEmailVerification,
   signOut,
@@ -30,7 +34,6 @@ import DesignedAlert from '../components/DesignedAlert';
 import CustomSplashScreen from '../components/CustomSplashScreen';
 
 const SALMON_COLOR = '#E88E83';
-
 
 interface EmailVerificationScreenProps {
   route: {
@@ -81,10 +84,11 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ route
 
   const navigateToLogin = useCallback(
     (verifiedEmail: string, verifiedRole: 'customer' | 'admin') => {
-      // Update browser URL first so linking does not keep /email-verification
+      consumeVerificationFlowCompleted();
+      setAwaitingEmailVerification(false);
+      // Must leave /email-verification or React Navigation remounts this screen
       replaceBrowserPath('/login');
-      // Let history update before resetting the stack (web linking sync)
-      requestAnimationFrame(() => {
+      const go = () => {
         navigation.reset({
           index: 0,
           routes: [
@@ -98,7 +102,10 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ route
             },
           ],
         });
-      });
+      };
+      // Double-schedule so web linking cannot snap us back to EmailVerification
+      requestAnimationFrame(go);
+      setTimeout(go, 50);
     },
     [navigation]
   );
@@ -108,6 +115,8 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ route
       if (finishingRef.current) return;
       finishingRef.current = true;
       pendingNavRef.current = { email: verifiedEmail, role: verifiedRole };
+      // Survive remounts if linking briefly re-opens this route
+      markVerificationFlowCompleted(verifiedEmail, verifiedRole);
 
       const resolvedName = await resolveFullName(fullNameHint);
       if (resolvedName) setWelcomeName(resolvedName);
@@ -118,30 +127,39 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ route
         // Still send them to login even if sign-out fails
       } finally {
         setAwaitingEmailVerification(false);
-        clearAuthCallbackUrlFromBrowser();
       }
 
-      // App already showed anonymous welcome AND we have no name → go login now
       const alreadyPlayedWelcome = consumeVerificationWelcomeSplashPlayed();
-      if (alreadyPlayedWelcome && !resolvedName) {
+      // App cold-start already showed the welcome splash — go straight to Login
+      if (alreadyPlayedWelcome) {
         navigateToLogin(verifiedEmail, verifiedRole);
         return;
       }
 
-      // Show welcome splash with dynamic name, then login
       setStatus('verified');
     },
     [navigateToLogin]
   );
 
   const goToLoginAfterSplash = useCallback(() => {
-    const pending = pendingNavRef.current;
+    const pending = pendingNavRef.current ?? peekVerificationFlowCompleted();
     navigateToLogin(pending?.email ?? normalizedEmail, pending?.role ?? role);
   }, [navigateToLogin, normalizedEmail, role]);
+
+  // Hard fallback so success never leaves the user stuck on this screen
+  useEffect(() => {
+    if (status !== 'verified') return;
+    const timer = setTimeout(() => {
+      goToLoginAfterSplash();
+    }, 7000);
+    return () => clearTimeout(timer);
+  }, [status, goToLoginAfterSplash]);
 
   const tryConsumeUrl = useCallback(
     async (url: string | null | undefined) => {
       if (!url || finishingRef.current) return;
+      if (!hasAuthCallbackTokens(url)) return;
+
       setStatus((prev) => (prev === 'waiting' ? 'verifying' : prev));
       try {
         const result = await consumeAuthCallbackUrl(url);
@@ -179,18 +197,80 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ route
   );
 
   useEffect(() => {
+    // Remount after success → leave to Login (or finish welcome splash once)
+    const alreadyDone = peekVerificationFlowCompleted();
+    if (alreadyDone) {
+      finishingRef.current = true;
+      pendingNavRef.current = alreadyDone;
+      if (email !== alreadyDone.email && alreadyDone.email) setEmail(alreadyDone.email);
+      if (role !== alreadyDone.role) setRole(alreadyDone.role);
+      const alreadyPlayedWelcome = consumeVerificationWelcomeSplashPlayed();
+      if (alreadyPlayedWelcome) {
+        navigateToLogin(alreadyDone.email, alreadyDone.role);
+      } else {
+        setStatus('verified');
+      }
+      return;
+    }
+
     setAwaitingEmailVerification(true);
 
-    tryConsumeUrl(getCurrentUrlForAuthCallback());
-    Linking.getInitialURL().then((url) => tryConsumeUrl(url)).catch(() => undefined);
+    const bootstrap = async () => {
+      const url = getCurrentUrlForAuthCallback();
+      if (hasAuthCallbackTokens(url)) {
+        await tryConsumeUrl(url);
+        return;
+      }
+
+      // Tokens already stripped / detectSessionInUrl already signed in
+      try {
+        const session = await getSession();
+        const user = session?.user;
+        if (!user) return;
+        const confirmed = Boolean(
+          (user as { email_confirmed_at?: string | null }).email_confirmed_at ||
+            (user as { confirmed_at?: string | null }).confirmed_at
+        );
+        if (!confirmed) return;
+        const sessionEmail = user.email ? normalizeEmail(user.email) : null;
+        if (normalizedEmail && sessionEmail && sessionEmail !== normalizedEmail) return;
+        if (sessionEmail) setEmail(sessionEmail);
+        const metaRole = (user.user_metadata as { role?: string } | undefined)?.role;
+        if (metaRole === 'admin' || metaRole === 'customer') setRole(metaRole);
+        const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+        const sessionName =
+          (typeof meta.full_name === 'string' && meta.full_name.trim()) ||
+          (typeof meta.fullName === 'string' && meta.fullName.trim()) ||
+          null;
+        await finishVerified(
+          sessionEmail || normalizedEmail,
+          metaRole === 'admin' ? 'admin' : role,
+          sessionName
+        );
+      } catch {
+        // stay on waiting UI
+      }
+    };
+
+    bootstrap();
+    Linking.getInitialURL()
+      .then((url) => {
+        if (hasAuthCallbackTokens(url)) tryConsumeUrl(url);
+      })
+      .catch(() => undefined);
 
     const linkingSub = Linking.addEventListener('url', ({ url }) => {
       tryConsumeUrl(url);
     });
 
-    const { data: { subscription } } = onAuthStateChange(async (event, session) => {
+    const {
+      data: { subscription },
+    } = onAuthStateChange(async (event, session) => {
       if (finishingRef.current) return;
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session?.user) {
+      if (
+        (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') &&
+        session?.user
+      ) {
         const sessionEmail = session.user.email ? normalizeEmail(session.user.email) : null;
         const confirmed = Boolean(
           (session.user as { email_confirmed_at?: string | null }).email_confirmed_at ||
@@ -227,7 +307,7 @@ const EmailVerificationScreen: React.FC<EmailVerificationScreenProps> = ({ route
       subscription?.unsubscribe?.();
       appStateSub.remove();
     };
-  }, [finishVerified, normalizedEmail, tryConsumeUrl]);
+  }, [finishVerified, navigateToLogin, normalizedEmail, role, tryConsumeUrl]);
 
   const handleResendEmail = async () => {
     if (!normalizedEmail) {

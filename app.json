@@ -6,42 +6,60 @@
     "scheme": "gymjourney",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/mobapplogo.png",
     "userInterfaceStyle": "automatic",
+    "androidStatusBar": {
+      "backgroundColor": "#0D0D0D",
+      "barStyle": "light-content",
+      "translucent": false
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hassanrashid0019.gymjourney",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Forge Gym uses Face ID to verify your identity for two-factor authentication."
+        "NSFaceIDUsageDescription": "Forge Gym uses Face ID to verify your identity for two-factor authentication.",
+        "NSLocationWhenInUseUsageDescription": "Forge uses your location to verify gym check-in."
       }
     },
     "android": {
       "package": "com.hassanrashid0019.gymjourney",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
+        "foregroundImage": "./assets/mobapplogo.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "statusBar": {
-        "backgroundColor": "#0D0D0D",
-        "barStyle": "light-content",
-        "translucent": false
-      },
       "permissions": [
         "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png",
+      "name": "FORGE",
+      "shortName": "FORGE",
+      "description": "FORGE — Train. Build. Become.",
+      "themeColor": "#0D0D0D",
+      "backgroundColor": "#0D0D0D",
+      "display": "standalone",
+      "startUrl": "/"
     },
     "plugins": [
       [
         "expo-local-authentication",
         {
           "faceIDPermission": "Allow Forge Gym to use Face ID for two-factor authentication."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Forge to use your location for gym check-in."
         }
       ],
       "expo-sqlite",

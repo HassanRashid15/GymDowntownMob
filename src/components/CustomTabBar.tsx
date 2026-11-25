@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   Image,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
@@ -13,10 +12,9 @@ import { getNameInitials } from '../utils/nameInitials';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Polyline, Circle } from 'react-native-svg';
 
-const { width } = Dimensions.get('window');
 const SALMON = '#E88E83';
-
-// ─── SVG Icons ────────────────────────────────────────────────────────────────
+const CENTER_SIZE = 56;
+const BUMP_SIZE = 68;
 
 const HomeIcon = ({ color, size = 24 }: { color: string; size?: number }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -86,28 +84,22 @@ const CustomTabBar: React.FC<TabBarProps> = ({ state, descriptors, navigation })
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
-      <View style={[
-        styles.floatingBar,
-        {
-          backgroundColor: colors.card,
-          paddingBottom: 8 + insets.bottom,
-        }
-      ]}>
-        {/* Subtle grid pattern overlay */}
-        <View style={styles.gridPattern}>
-          <View style={[styles.gridLine, { backgroundColor: `${colors.border}15` }]} />
-          <View style={[styles.gridLine, { backgroundColor: `${colors.border}15` }]} />
-          <View style={[styles.gridLine, { backgroundColor: `${colors.border}15` }]} />
-          <View style={[styles.gridLine, { backgroundColor: `${colors.border}15` }]} />
+    <View style={styles.container}>
+      <View
+        style={[
+          styles.floatingBar,
+          {
+            backgroundColor: colors.card,
+            paddingBottom: 8 + insets.bottom,
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        {/* Center bump — full-width row + alignItems center (reliable on devices) */}
+        <View style={styles.bumpRow} pointerEvents="none">
+          <View style={[styles.bumpCircle, { backgroundColor: colors.card }]} />
         </View>
 
-        {/* ─── Center Bump Background ─── */}
-        <View style={[styles.bumpOuter, { backgroundColor: colors.card, borderColor: '#2E2E2E' }]}>
-          <View style={[styles.bumpInnerCover, { backgroundColor: colors.card }]} />
-        </View>
-
-        {/* Tab Items */}
         <View style={styles.tabBarContent}>
           {tabs.map((tab, index) => {
             const isFocused = state.index === index;
@@ -115,7 +107,6 @@ const CustomTabBar: React.FC<TabBarProps> = ({ state, descriptors, navigation })
             const isProfileTab = tab.name === 'Settings';
             const hasAvatar = isProfileTab && !!user?.avatar?.trim();
             const profileInitials = user ? getNameInitials(user.name) : '';
-
             const IconComponent = tab.icon;
 
             const onPress = () => {
@@ -131,55 +122,77 @@ const CustomTabBar: React.FC<TabBarProps> = ({ state, descriptors, navigation })
 
             return (
               <TouchableOpacity
-                key={index}
+                key={tab.name}
                 onPress={onPress}
-                style={[styles.tabItem, isCenter && { zIndex: 10 }]}
+                style={styles.tabItem}
                 activeOpacity={0.8}
               >
-                <View style={styles.iconContainerPlaceholder}>
-                  <View style={[
-                    styles.iconContainer,
-                    isCenter && styles.centerIconContainer,
-                    isCenter && { backgroundColor: SALMON },
-                  ]}>
+                <View
+                  style={[
+                    styles.iconSlot,
+                    isCenter && styles.centerIconSlot,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      isCenter && styles.centerIconContainer,
+                      isCenter && { backgroundColor: SALMON },
+                    ]}
+                  >
                     {hasAvatar ? (
-                      <View style={[
-                        styles.avatarRing,
-                        { borderColor: isFocused ? SALMON : 'transparent' }
-                      ]}>
-                        <Image
-                          source={{ uri: user!.avatar }}
-                          style={styles.avatarImage}
-                        />
+                      <View
+                        style={[
+                          styles.avatarRing,
+                          { borderColor: isFocused ? SALMON : 'transparent' },
+                        ]}
+                      >
+                        <Image source={{ uri: user!.avatar }} style={styles.avatarImage} />
                       </View>
                     ) : isProfileTab && user ? (
-                      <View style={[
-                        styles.initialsRing,
-                        {
-                          borderColor: isFocused ? SALMON : '#C5A059',
-                          backgroundColor: `${SALMON}22`,
-                        },
-                      ]}>
-                        <Text style={[styles.initialsText, { color: SALMON }]}>{profileInitials}</Text>
+                      <View
+                        style={[
+                          styles.initialsRing,
+                          {
+                            borderColor: isFocused ? SALMON : '#C5A059',
+                            backgroundColor: `${SALMON}22`,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.initialsText, { color: SALMON }]}>
+                          {profileInitials}
+                        </Text>
                       </View>
                     ) : (
                       <IconComponent
                         size={isCenter ? 26 : 22}
-                        color={isCenter ? '#000000' : (isFocused ? SALMON : colors.mutedForeground)}
+                        color={
+                          isCenter
+                            ? '#000000'
+                            : isFocused
+                              ? SALMON
+                              : colors.mutedForeground
+                        }
                       />
                     )}
                   </View>
                 </View>
 
-                <Text style={[
-                  styles.tabLabel,
-                  {
-                    color: isFocused
-                      ? (isProfileTab ? SALMON : (isCenter ? SALMON : colors.primary))
-                      : colors.mutedForeground,
-                    fontWeight: isFocused ? '700' : '500',
-                  }
-                ]}>
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    {
+                      color: isFocused
+                        ? isProfileTab
+                          ? SALMON
+                          : isCenter
+                            ? SALMON
+                            : colors.primary
+                        : colors.mutedForeground,
+                      fontWeight: isFocused ? '700' : '500',
+                    },
+                  ]}
+                >
                   {tab.name === 'Join'
                     ? isSuperAdmin
                       ? 'Subscription'
@@ -208,66 +221,48 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 12,
-    paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderColor: '#2E2E2E',
+    paddingHorizontal: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
     position: 'relative',
+    overflow: 'visible',
   },
-  gridPattern: {
+  bumpRow: {
     position: 'absolute',
-    top: 0,
+    top: -(BUMP_SIZE / 2 - 8),
     left: 0,
     right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    pointerEvents: 'none',
-  },
-  gridLine: {
-    width: 1,
-    height: '100%',
-  },
-  // ─── Center Bump Styles ───
-  bumpOuter: {
-    position: 'absolute',
-    top: -24,
-    left: '50%',
-    marginLeft: -40, // width 80 / 2
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 1,
+    alignItems: 'center',
     zIndex: 0,
   },
-  bumpInnerCover: {
-    position: 'absolute',
-    bottom: -2, // pull down to cover the bottom border of the bump
-    left: 2,
-    right: 2,
-    height: 40,
-    zIndex: 1, // Covers the bottom border curve inside the tab bar
+  bumpCircle: {
+    width: BUMP_SIZE,
+    height: BUMP_SIZE,
+    borderRadius: BUMP_SIZE / 2,
   },
-  // ─── Tab Content ───
   tabBarContent: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     zIndex: 2,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
+    justifyContent: 'flex-end',
+    paddingVertical: 6,
   },
-  iconContainerPlaceholder: {
+  iconSlot: {
     width: 44,
     height: 44,
     marginBottom: 4,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  centerIconSlot: {
+    width: CENTER_SIZE,
+    height: CENTER_SIZE,
+    marginTop: -28,
+    marginBottom: 4,
   },
   iconContainer: {
     width: 44,
@@ -277,21 +272,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   centerIconContainer: {
-    position: 'absolute',
-    top: -32,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    elevation: 5,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
+    width: CENTER_SIZE,
+    height: CENTER_SIZE,
+    borderRadius: CENTER_SIZE / 2,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
   },
   tabLabel: {
     fontSize: 10,
     letterSpacing: 0.5,
   },
-  // ─── Avatar Styles ───
   avatarRing: {
     width: 32,
     height: 32,

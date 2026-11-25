@@ -1,11 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle, Platform, StyleProp } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
-
-let LinearGradient: any;
-if (Platform.OS !== 'web') {
-  LinearGradient = require('react-native-linear-gradient').default;
-}
 
 interface CardProps {
   children: React.ReactNode;
@@ -16,7 +12,7 @@ interface CardProps {
 const Card: React.FC<CardProps> = ({ children, style, variant = 'default' }) => {
   const { colors } = useTheme();
 
-  if (variant === 'glass' && LinearGradient && Platform.OS !== 'web') {
+  if (variant === 'glass') {
     return (
       <LinearGradient
         colors={colors.gradients.card}
@@ -45,14 +41,6 @@ const Card: React.FC<CardProps> = ({ children, style, variant = 'default' }) => 
     };
 
     switch (variant) {
-      case 'glass':
-        return {
-          ...baseStyle,
-          borderWidth: 1,
-          borderColor: colors.border,
-          shadowColor: colors.primary,
-          shadowOpacity: 0.08,
-        };
       case 'outlined':
         return {
           ...baseStyle,

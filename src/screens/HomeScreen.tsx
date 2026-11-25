@@ -6,7 +6,11 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
+  Platform,
+  useWindowDimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path, Circle, Polyline, Rect, Line } from 'react-native-svg';
 import ScreenScrollView from '../components/ScreenScrollView';
 import HorizontalScrollView from '../components/HorizontalScrollView';
 import { useTheme } from '../context/ThemeContext';
@@ -18,16 +22,65 @@ import TypingText from '../components/TypingText';
 import GradientText from '../components/GradientText';
 import { allClasses } from '../data/classes';
 import { allEquipment } from '../data/equipment';
+import {
+  HomeLiveStats,
+  HomePromotionsStrip,
+  HomeReviewsStrip,
+} from '../components/HomeHubSections';
 
 const SALMON = '#E88E83';
+const HERO_RED = '#FA1818';
 
 const { width } = Dimensions.get('window');
+
+const HERO_PHRASES = [
+  'Journey Starts Here',
+  'Get Stronger Daily',
+  'Build Real Strength',
+  'Never Skip The Grind',
+  'Train With Purpose',
+  'Push Past Limits',
+  'Own Your Progress',
+  'Forge Your Future',
+];
+
+const DumbbellIcon = ({ color }: { color: string }) => (
+  <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+    <Rect x="1" y="8" width="3" height="8" rx="1" fill={color} />
+    <Rect x="4" y="6" width="3" height="12" rx="1" fill={color} />
+    <Rect x="7" y="10.5" width="10" height="3" rx="1" fill={color} />
+    <Rect x="17" y="6" width="3" height="12" rx="1" fill={color} />
+    <Rect x="20" y="8" width="3" height="8" rx="1" fill={color} />
+  </Svg>
+);
+
+const UsersIcon = ({ color }: { color: string }) => (
+  <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <Circle cx="9" cy="7" r="4" />
+    <Path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <Path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </Svg>
+);
+
+const ChartIcon = ({ color }: { color: string }) => (
+  <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round">
+    <Polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+    <Polyline points="16 7 22 7 22 13" />
+  </Svg>
+);
+
+const HERO_HIGHLIGHTS = [
+  { title: 'Partner Gyms', detail: 'Real locations near you', Icon: DumbbellIcon },
+  { title: 'Expert Trainers', detail: 'Coaches on the floor', Icon: UsersIcon },
+  { title: 'Track Progress', detail: 'Log workouts in-app', Icon: ChartIcon },
+];
 
 const HomeScreen: React.FC = ({ navigation }: any) => {
   const { colors } = useTheme();
   const { isAuthenticated } = useAuth();
-
-  const phrases = ['FUTURE', 'STRENGTH', 'LEGACY', 'GREATNESS', 'POWER'];
+  const { height: windowHeight } = useWindowDimensions();
+  const heroHeight = Math.round(windowHeight * 0.75);
 
   const features = [
     { icon: '⚡', title: 'High-Tech Equipment', description: 'State-of-the-art machines and free weights' },
@@ -44,43 +97,80 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
 
   return (
     <ScreenScrollView style={{ backgroundColor: colors.background }}>
-      {/* Hero Section */}
-      <View style={[styles.hero, { backgroundColor: colors.card }]}>
+      {/* Hub-style hero: 75vh — bottom fade blends into page */}
+      <View style={[styles.hero, { height: heroHeight }]}>
         <Image
-          source={{ uri: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800' }}
-          style={styles.heroImage}
+          source={require('../../assets/home_herosection.png')}
+          style={[styles.heroImage, { height: heroHeight }]}
           resizeMode="cover"
+          accessibilityIgnoresInvertColors
         />
-        <View style={[styles.heroOverlay, { backgroundColor: colors.background }]} />
-        {/* Fire glow effects */}
-        <View style={[styles.glowBlob1, { backgroundColor: `${colors.primary}30` }]} />
-        <View style={[styles.glowBlob2, { backgroundColor: `${colors.accent}25` }]} />
-        <View style={styles.heroContent}>
-          <Text style={[styles.heroTagline, { color: colors.primary }]}>
-            UNLEASH. IGNITE. DOMINATE.
-          </Text>
-          <Text style={[styles.heroTitle, { color: colors.foreground }]}>
-            FORGE YOUR
-          </Text>
-          <TypingText words={phrases} />
-          <Text style={[styles.heroDescription, { color: colors.mutedForeground }]}>
-            Sweat is your fuel. Every rep, every drop, every breath — this is where champions are built.
-          </Text>
-          <View style={styles.heroButtons}>
-            <Button
-              title="Start Your Journey"
-              onPress={() => navigation.navigate(isAuthenticated ? 'Dashboard' : 'Membership')}
-              size="large"
+        <View collapsable={false} style={styles.heroContent}>
+          <View style={styles.heroCopy} collapsable={false}>
+            <Text style={styles.heroTitleLine}>Your Fitness</Text>
+            <TypingText
+              words={HERO_PHRASES}
+              solidColor={HERO_RED}
+              typingSpeed={50}
+              deletingSpeed={28}
+              pauseDuration={2200}
+              style={styles.heroTyping}
             />
-            <Button
-              title="Explore Classes"
-              onPress={() => navigation.navigate('Classes')}
-              variant="outline"
-              size="large"
-            />
+            <Text style={styles.heroDescription}>
+              Get personalized workout plans, expert guidance and track your progress — all in one
+              place. Build a stronger, healthier and better you.
+            </Text>
+            <View style={styles.heroButtons}>
+              <TouchableOpacity
+                style={styles.heroCtaPrimary}
+                activeOpacity={0.9}
+                onPress={() =>
+                  navigation.navigate(isAuthenticated ? 'Dashboard' : 'Register')
+                }
+              >
+                <Text style={styles.heroCtaPrimaryText}>START YOUR JOURNEY</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.heroCtaSecondary}
+                activeOpacity={0.9}
+                onPress={() => navigation.navigate('Classes')}
+              >
+                <Text style={styles.heroCtaSecondaryText}>EXPLORE FEATURES</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.heroHighlights}>
+              {HERO_HIGHLIGHTS.map(({ title, detail, Icon }) => (
+                <View key={title} style={styles.heroHighlightRow}>
+                  <View style={styles.heroHighlightIcon}>
+                    <Icon color={HERO_RED} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.heroHighlightTitle}>{title}</Text>
+                    <Text style={styles.heroHighlightDetail}>{detail}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
+        {/* Soft merge into page background */}
+        <LinearGradient
+          colors={[
+            'transparent',
+            `${colors.background}99`,
+            colors.background,
+          ]}
+          locations={[0, 0.45, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.heroBottomBlend}
+          pointerEvents="none"
+        />
       </View>
+
+      <HomeLiveStats />
+      <HomePromotionsStrip />
 
       {/* Features Section */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
@@ -191,6 +281,36 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         </View>
       </View>
 
+      <HomeReviewsStrip />
+
+      <View style={[styles.section, { paddingTop: 8 }]}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 24 }}>
+          {[
+            { label: 'GYMS', route: 'Gyms' },
+            { label: 'EXERCISES', route: 'Exercises' },
+            { label: 'BLOG', route: 'Blog' },
+            { label: 'LIVE CLASSES', route: 'LiveClasses' },
+          ].map((item) => (
+            <TouchableOpacity
+              key={item.route}
+              onPress={() => navigation.navigate(item.route)}
+              style={{
+                borderWidth: 1,
+                borderColor: '#2A2A2A',
+                backgroundColor: '#141414',
+                borderRadius: 20,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+              }}
+            >
+              <Text style={{ color: SALMON, fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 1 }}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
       {/* Testimonials */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>MEMBER STORIES</Text>
@@ -265,60 +385,147 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   hero: {
-    height: 600,
     position: 'relative',
+    width: '100%',
+    overflow: 'hidden',
+    backgroundColor: '#0D0D0D',
   },
   heroImage: {
-    ...StyleSheet.absoluteFill,
-  },
-  heroOverlay: {
-    ...StyleSheet.absoluteFill,
-    opacity: 0.65,
-  },
-  glowBlob1: {
     position: 'absolute',
-    top: '20%',
-    left: -40,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    opacity: 0.6,
-  },
-  glowBlob2: {
-    position: 'absolute',
-    bottom: '15%',
-    right: -30,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    opacity: 0.5,
+    top: 0,
+    left: 0,
+    width: '100%',
   },
   heroContent: {
-    ...StyleSheet.absoluteFill,
+    flex: 1,
+    width: '100%',
     justifyContent: 'center',
-    padding: 24,
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+    backgroundColor: 'rgba(0,0,0,0.62)',
+    zIndex: 2,
   },
-  heroTagline: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 2,
-    marginBottom: 16,
-    textTransform: 'uppercase',
+  heroBottomBlend: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 160,
+    zIndex: 3,
   },
-  heroTitle: {
-    fontSize: 48,
+  heroCopy: {
+    width: '100%',
+    maxWidth: 420,
+    alignItems: 'flex-start',
+  },
+  heroTitleLine: {
     fontFamily: 'BebasNeue_400Regular',
-    letterSpacing: 2,
-    marginBottom: 4,
+    fontSize: 42,
+    lineHeight: 48,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+    textAlign: 'left',
+    ...(Platform.OS === 'android' ? { includeFontPadding: false } : {}),
+  },
+  heroTyping: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 32,
+    lineHeight: 40,
+    textAlign: 'left',
   },
   heroDescription: {
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 24,
-    maxWidth: 400,
+    fontFamily: 'Inter_400Regular',
+    fontSize: 14,
+    lineHeight: 21,
+    color: 'rgba(255,255,255,0.85)',
+    maxWidth: 340,
+    marginTop: 8,
+    marginBottom: 22,
+    textAlign: 'left',
   },
   heroButtons: {
+    width: '100%',
     gap: 12,
+    marginBottom: 22,
+    alignItems: 'flex-start',
+  },
+  heroCtaPrimary: {
+    height: 44,
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 999,
+    backgroundColor: HERO_RED,
+    alignItems: 'center', 
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+    shadowColor: HERO_RED,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 6,
+  },
+  heroCtaPrimaryText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 12,
+    letterSpacing: 1.2,
+    color: '#FFFFFF',
+  },
+  heroCtaSecondary: {
+    height: 44,
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  heroCtaSecondaryText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 12,
+    letterSpacing: 1.2,
+    color: '#FFFFFF',
+  },
+  heroHighlights: {
+    width: '100%',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.15)',
+    paddingTop: 18,
+    gap: 14,
+    alignItems: 'flex-start',
+  },
+  heroHighlightRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    maxWidth: 320,
+  },
+  heroHighlightIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(250,24,24,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(250,24,24,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroHighlightTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    color: '#FFFFFF',
+    textAlign: 'left',
+  },
+  heroHighlightDetail: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.55)',
+    marginTop: 2,
+    textAlign: 'left',
   },
   section: {
     padding: 24,

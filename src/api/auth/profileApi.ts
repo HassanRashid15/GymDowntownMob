@@ -18,6 +18,10 @@ export const buildAuthUser = (authUser: SupabaseUser, profile?: Record<string, a
     avatar: profile?.avatar_url ?? metadata.avatar_url,
     phone: profile?.phone ?? metadata.phone,
     gymName: profile?.gym_name ?? metadata.gym_name,
+    age: profile?.age ?? metadata.age,
+    gender: profile?.gender ?? metadata.gender,
+    height: profile?.height ?? metadata.height,
+    weight: profile?.weight ?? metadata.weight,
     isApproved: profile?.is_approved ?? metadata.is_approved ?? false,
     approvedBy: profile?.approved_by ?? undefined,
     approvedAt: profile?.approved_at ?? undefined,
@@ -134,6 +138,10 @@ export const updateUserProfile = async (userId: string, input: ProfileUpdateInpu
       full_name: input.name.trim(),
       phone: input.phone?.trim() || null,
       avatar_url: input.avatar || null,
+      age: input.age || null,
+      gender: input.gender || null,
+      height: input.height || null,
+      weight: input.weight || null,
     })
     .eq('id', userId);
 

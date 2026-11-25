@@ -18,10 +18,10 @@ export const Colors = {
     border: '#2E2E2E',           // hsl(0 0% 18%)
     input: '#2E2E2E',
     gradients: {
-      primary: ['#FA1818', '#FF6633'],
-      fire: ['#FF6633', '#FA1818', '#C41E1E'],
-      dark: ['#0D0D0D', '#050505'],
-      card: ['#1A1A1A', '#0F0F0F'],
+      primary: ['#FA1818', '#FF6633'] as const,
+      fire: ['#FF6633', '#FA1818', '#C41E1E'] as const,
+      dark: ['#0D0D0D', '#050505'] as const,
+      card: ['#1A1A1A', '#0F0F0F'] as const,
     },
   },
 
@@ -43,10 +43,10 @@ export const Colors = {
     border: '#D9D5D0',           // hsl(30 10% 85%)
     input: '#D9D5D0',
     gradients: {
-      primary: ['#F20D0D', '#FF571A'],
-      fire: ['#FF571A', '#F20D0D', '#C41E1E'],
-      dark: ['#F5F2EF', '#EBE8E5'],
-      card: ['#FDFCFB', '#F5F2EF'],
+      primary: ['#F20D0D', '#FF571A'] as const,
+      fire: ['#FF571A', '#F20D0D', '#C41E1E'] as const,
+      dark: ['#F5F2EF', '#EBE8E5'] as const,
+      card: ['#FDFCFB', '#F5F2EF'] as const,
     },
   },
 

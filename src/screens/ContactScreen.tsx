@@ -14,6 +14,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 import { supportChannels } from '../data/helpSupport';
 import { navigateBackOrTo } from '../navigation/navigationHelpers';
+import { isHubApiConfigured, submitContactMessage } from '../api/hub';
 
 const SALMON = '#E88E83';
 
@@ -173,11 +174,28 @@ const ContactScreen: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    setFormData(emptyForm());
-    setFormErrors({});
-    setSubmitSuccess(true);
-    setIsSubmitting(false);
+    try {
+      if (isHubApiConfigured()) {
+        await submitContactMessage({
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim() || undefined,
+          subject: formData.subject.trim(),
+          message: formData.message.trim(),
+        });
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+      setFormData(emptyForm());
+      setFormErrors({});
+      setSubmitSuccess(true);
+    } catch (e: any) {
+      setFormErrors({
+        message: e?.message || 'Could not send message. Try again.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const inputStyle = (hasError: boolean) => [

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { calculateBMI, calculateBMR, calculateTDEE, calculateIdealWeight } from '@finegym/fitness-calc';
+import WheelPicker from '@quidone/react-native-wheel-picker';
 import HorizontalScrollView from '../components/HorizontalScrollView';
 import DesignedAlert from '../components/DesignedAlert';
 import AuthCooldownHeaderBadge from '../components/AuthCooldownHeaderBadge';
@@ -19,6 +21,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useAuthCooldown } from '../hooks/useAuthCooldown';
 import { formatCooldownTime } from '../api/auth';
+import CustomRulerPicker from '../components/CustomRulerPicker';
 
 const SALMON_COLOR = '#E88E83';
 
@@ -33,6 +36,57 @@ const FITNESS_GOALS = [
   'Stress Relief',
   'Recomposition',
 ];
+
+
+
+const getHealthStatus = (bmiCategory: string): {
+  status: string;
+  color: string;
+  backgroundColor: string;
+  recommendedGoals: string[];
+} => {
+  switch (bmiCategory) {
+    case 'underweight_severe':
+    case 'underweight_moderate':
+    case 'underweight_mild':
+      return {
+        status: 'Underweight',
+        color: '#3498db', // Blue
+        backgroundColor: 'rgba(52, 152, 219, 0.15)',
+        recommendedGoals: ['Build Muscle', 'Gain Strength', 'Overall Fitness'],
+      };
+    case 'normal':
+      return {
+        status: 'Normal Weight',
+        color: '#2ecc71', // Green
+        backgroundColor: 'rgba(46, 204, 113, 0.15)',
+        recommendedGoals: ['Overall Fitness', 'Improve Endurance', 'Athlete Performance'],
+      };
+    case 'overweight':
+      return {
+        status: 'Overweight',
+        color: '#f39c12', // Orange
+        backgroundColor: 'rgba(243, 156, 18, 0.15)',
+        recommendedGoals: ['Lose Weight', 'Improve Endurance', 'Recomposition'],
+      };
+    case 'obese_class_1':
+    case 'obese_class_2':
+    case 'obese_class_3':
+      return {
+        status: 'Obese',
+        color: '#e74c3c', // Red
+        backgroundColor: 'rgba(231, 76, 60, 0.15)',
+        recommendedGoals: ['Lose Weight', 'Improve Endurance', 'Overall Fitness'],
+      };
+    default:
+      return {
+        status: 'Normal Weight',
+        color: '#2ecc71', // Green
+        backgroundColor: 'rgba(46, 204, 113, 0.15)',
+        recommendedGoals: ['Overall Fitness', 'Improve Endurance', 'Athlete Performance'],
+      };
+  }
+};
 const EXPERIENCE_LEVELS = ['Beginner', 'Some Experience', 'Intermediate', 'Advanced', 'Elite'];
 const TARGET_AREAS = ['Arms', 'Chest', 'Back', 'Legs', 'Core', 'Shoulders', 'Glutes', 'Full Body'];
 const WORKOUT_DAYS = ['2 days/week', '3 days/week', '4 days/week', '5 days/week', '6+ days/week'];
@@ -50,6 +104,7 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [alert, setAlert] = useState<{ title: string; message: string } | null>(null);
 
   // Step 1: Identity
@@ -57,15 +112,98 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [selectedRole, setSelectedRole] = useState<'customer' | 'admin'>('customer');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [step1Errors, setStep1Errors] = useState<Record<string, string>>({});
 
   // Step 2: Physique
   const [age, setAge] = useState('');
-  const [weight, setWeight] = useState('');
+  const [gender, setGender] = useState<string>('');
+  const [weight, setWeight] = useState(70.0);
+  const [height, setHeight] = useState(175);
+  const [heightUnit, setHeightUnit] = useState<'cm' | 'ft_in'>('cm');
+  const [feet, setFeet] = useState(5);
+  const [inches, setInches] = useState(9);
   const [fitnessGoal, setFitnessGoal] = useState('');
   const [step2Errors, setStep2Errors] = useState<Record<string, string>>({});
+  const [healthStatus, setHealthStatus] = useState<{
+    status: string;
+    color: string;
+    backgroundColor: string;
+    recommendedGoals: string[];
+    bmi: number;
+  } | null>(null);
+
+  // Generate wheel picker data with gram precision (decimal values)
+  const weightData = Array.from({ length: 2710 }, (_, i) => ({
+    value: (i + 300) / 10, // Values from 30.0 to 300.9 kg
+    label: `${((i + 300) / 10).toFixed(1)}`,
+  }));
+
+  const heightData = Array.from({ length: 151 }, (_, i) => ({
+    value: i + 100,
+    label: `${i + 100}`,
+  }));
+
+  const feetData = Array.from({ length: 8 }, (_, i) => ({
+    value: i + 3,
+    label: `${i + 3}`,
+  }));
+
+  const inchesData = Array.from({ length: 12 }, (_, i) => ({
+    value: i,
+    label: `${i}`,
+  }));
+
+  // Unit conversion functions
+  const convertWeightToKg = () => {
+    return weight; // Weight is now always in kg with decimal precision
+  };
+
+  // Handle height unit change with conversion
+  const handleHeightUnitChange = (newUnit: 'cm' | 'ft_in') => {
+    if (newUnit === heightUnit) return;
+    
+    if (newUnit === 'ft_in' && heightUnit === 'cm') {
+      const totalInches = height / 2.54;
+      setFeet(Math.floor(totalInches / 12));
+      setInches(Math.round(totalInches % 12));
+    } else if (newUnit === 'cm' && heightUnit === 'ft_in') {
+      setHeight(Math.round(feet * 30.48 + inches * 2.54));
+    }
+    setHeightUnit(newUnit);
+  };
+
+  const convertHeightToCm = () => {
+    if (heightUnit === 'cm') {
+      return height;
+    }
+    return feet * 30.48 + inches * 2.54;
+  };
+
+  // Auto-calculate BMI and detect health status
+  useEffect(() => {
+    const weightKg = convertWeightToKg();
+    const heightCm = convertHeightToCm();
+    
+    if (weightKg > 0 && heightCm > 0) {
+      const bmiResult = calculateBMI(weightKg, heightCm);
+      const status = getHealthStatus(bmiResult.category);
+      
+      setHealthStatus({
+        ...status,
+        bmi: bmiResult.bmi,
+      });
+      
+      // Auto-select recommended goal if no goal is selected yet
+      if (!fitnessGoal && status.recommendedGoals.length > 0) {
+        setFitnessGoal(status.recommendedGoals[0]);
+      }
+    } else {
+      setHealthStatus(null);
+    }
+  }, [weight, height, heightUnit, feet, inches, age]);
 
   // Step 3: Goals / Workouts
   const [experienceLevel, setExperienceLevel] = useState('');
@@ -76,6 +214,7 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
   const [step3Errors, setStep3Errors] = useState<Record<string, string>>({});
   const [gymName, setGymName] = useState('');
   const [phone, setPhone] = useState('');
+  const [modalType, setModalType] = useState<'age' | 'gender' | 'height' | 'weight' | null>(null);
   const [cooldownError, setCooldownError] = useState('');
   const { isCoolingDown, formattedTime, remainingSeconds, progress, source, triggerCooldownFromError } =
     useAuthCooldown();
@@ -109,6 +248,10 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
     }
     if (!password) errors.password = 'Password is required';
     else if (password.length < 8) errors.password = 'Must be at least 8 characters';
+    if (!confirmPassword) errors.confirmPassword = 'Please confirm your password';
+    else if (password !== confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
     if (!agreeTerms) errors.terms = 'Agreement required';
     setStep1Errors(errors);
     return Object.keys(errors).length === 0;
@@ -128,10 +271,15 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
     if (isAdminFlow) {
       const errors: Record<string, string> = {};
       const ageNum = parseInt(age);
-      const weightNum = parseFloat(weight);
+      const weightKg = convertWeightToKg();
+      const heightCm = convertHeightToCm();
+      
       if (!age || isNaN(ageNum) || ageNum < 13 || ageNum > 100) errors.age = 'Enter a valid age (13-100)';
-      if (!weight || isNaN(weightNum) || weightNum < 30 || weightNum > 300) {
+      if (weightKg < 30 || weightKg > 300) {
         errors.weight = 'Enter a valid weight (30-300 kg)';
+      }
+      if (heightCm < 100 || heightCm > 250) {
+        errors.height = 'Enter a valid height (100-250 cm)';
       }
       if (!gymName.trim()) errors.gymName = 'Gym name is required';
       if (!phone.trim()) errors.phone = 'Phone number is required';
@@ -143,10 +291,16 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
 
     const errors: Record<string, string> = {};
     const ageNum = parseInt(age);
-    const weightNum = parseFloat(weight);
+    const weightKg = convertWeightToKg();
+    const heightCm = convertHeightToCm();
+    
     if (!age || isNaN(ageNum) || ageNum < 13 || ageNum > 100) errors.age = 'Enter a valid age (13-100)';
-    if (!weight || isNaN(weightNum) || weightNum < 30 || weightNum > 300)
+    if (!gender) errors.gender = 'Select your gender';
+    if (weightKg < 30 || weightKg > 300)
       errors.weight = 'Enter a valid weight (30-300 kg)';
+    if (heightCm < 100 || heightCm > 250) {
+      errors.height = 'Enter a valid height (100-250 cm)';
+    }
     if (!fitnessGoal) errors.fitnessGoal = 'Select fitness goal';
     setStep2Errors(errors);
     if (Object.keys(errors).length === 0) setCurrentStep(3);
@@ -171,21 +325,25 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
           ? {
               gymName,
               phone,
-              fitnessProfile: {
-                age,
-                weight,
-                fitnessGoal: '',
-                experienceLevel: '',
-                targetAreas: [],
-                workoutDays: '',
-                workoutDuration: '',
-                workoutType: '',
-              },
+        fitnessProfile: {
+          age,
+          gender,
+          weight: convertWeightToKg().toFixed(1),
+          height: convertHeightToCm().toString(),
+          fitnessGoal: '',
+          experienceLevel: '',
+          targetAreas: [],
+          workoutDays: '',
+          workoutDuration: '',
+          workoutType: '',
+        },
             }
           : {
               fitnessProfile: {
                 age,
-                weight,
+                gender,
+                weight: convertWeightToKg().toFixed(1),
+                height: convertHeightToCm().toString(),
                 fitnessGoal,
                 experienceLevel,
                 targetAreas,
@@ -254,6 +412,35 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
     );
   };
 
+  const openModal = (type: 'age' | 'gender' | 'height' | 'weight') => {
+    setModalType(type);
+  };
+
+  const closeModal = () => {
+    setModalType(null);
+  };
+
+  const handleModalSelect = (value: string) => {
+    switch (modalType) {
+      case 'age':
+        setAge(value);
+        if (step2Errors.age) setStep2Errors({ ...step2Errors, age: '' });
+        break;
+      case 'gender':
+        setGender(value);
+        if (step2Errors.gender) setStep2Errors({ ...step2Errors, gender: '' });
+        break;
+      case 'height':
+        setHeight(parseInt(value));
+        if (step2Errors.height) setStep2Errors({ ...step2Errors, height: '' });
+        break;
+      case 'weight':
+        setWeight(parseFloat(value));
+        if (step2Errors.weight) setStep2Errors({ ...step2Errors, weight: '' });
+        break;
+    }
+  };
+
   const renderStepper = () => (
     <View style={styles.stepperContainer}>
       <View style={styles.stepperRow}>
@@ -289,12 +476,14 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
     selected: string | string[],
     onSelect: (val: string) => void,
     multi = false,
-    horizontal = false
+    horizontal = false,
+    recommendedOptions?: string[]
   ) => {
     const chips = options.map((option) => {
       const isSelected = multi
         ? (selected as string[]).includes(option)
         : selected === option;
+      const isRecommended = recommendedOptions?.includes(option);
       return (
         <TouchableOpacity
           key={option}
@@ -303,13 +492,24 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
             styles.chip,
             horizontal && styles.chipHorizontal,
             {
-              backgroundColor: isSelected ? 'rgba(232, 142, 131, 0.12)' : '#1C1C1E',
-              borderColor: isSelected ? SALMON_COLOR : '#2C2C2E',
+              backgroundColor: isSelected 
+                ? 'rgba(232, 142, 131, 0.12)' 
+                : isRecommended 
+                  ? healthStatus?.backgroundColor 
+                  : '#1C1C1E',
+              borderColor: isSelected 
+                ? SALMON_COLOR 
+                : isRecommended 
+                  ? healthStatus?.color 
+                  : '#2E2E2E',
             },
           ]}
         >
-          <Text style={[styles.chipText, { color: isSelected ? SALMON_COLOR : '#FAFAFA' }]}>
+          <Text style={[styles.chipText, { color: isSelected ? SALMON_COLOR : isRecommended ? healthStatus?.color : '#FAFAFA' }]}>
             {option}
+            {isRecommended && (
+              <Text style={[styles.recommendedBadge, { color: healthStatus?.color }]}> ★</Text>
+            )}
           </Text>
         </TouchableOpacity>
       );
@@ -403,7 +603,7 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
           {showLogo && (
             <View style={[styles.logoSection, logoSmall && styles.logoSectionSmall]}>
               <Image
-                source={require('../../assets/mob_app.png')}
+                source={require('../../assets/mobapplogo.png')}
                 style={[styles.logoImage, logoSmall && styles.logoImageSmall]}
                 resizeMode="contain"
               />
@@ -545,56 +745,118 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
                 ) : null}
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: colors.mutedForeground }]}>Password</Text>
-                <View
-                  style={[
-                    styles.inputWrapper,
-                    {
-                      backgroundColor: '#1C1C1E',
-                      borderColor: step1Errors.password ? colors.primary : '#2E2E2E',
-                    },
-                  ]}
-                >
-                  <View style={styles.fieldIconWrapper}>
-                    <Ionicons
-                      name="lock-closed-outline"
-                      size={20}
-                      color={colors.mutedForeground}
-                    />
-                  </View>
-                  <TextInput
-                    style={[styles.textInput, { color: colors.foreground }]}
-                    placeholder="••••••••"
-                    placeholderTextColor="#555555"
-                    value={password}
-                    onChangeText={(text) => {
-                      setPassword(text);
-                      if (step1Errors.password)
-                        setStep1Errors({ ...step1Errors, password: '' });
-                    }}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    autoComplete="new-password"
-                    textContentType="newPassword"
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowPassword(!showPassword)}
-                    style={styles.eyeToggleWrapper}
+              <View style={styles.passwordRow}>
+                <View style={styles.passwordField}>
+                  <Text style={[styles.label, { color: colors.mutedForeground }]}>Password</Text>
+                  <View
+                    style={[
+                      styles.inputWrapper,
+                      {
+                        backgroundColor: '#1C1C1E',
+                        borderColor: step1Errors.password ? colors.primary : '#2E2E2E',
+                      },
+                    ]}
                   >
-                    <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color={colors.mutedForeground}
+                    <View style={styles.fieldIconWrapper}>
+                      <Ionicons
+                        name="lock-closed-outline"
+                        size={20}
+                        color={colors.mutedForeground}
+                      />
+                    </View>
+                    <TextInput
+                      style={[styles.textInput, { color: colors.foreground }]}
+                      placeholder="••••••••"
+                      placeholderTextColor="#555555"
+                      value={password}
+                      onChangeText={(text) => {
+                        setPassword(text);
+                        if (step1Errors.password)
+                          setStep1Errors({ ...step1Errors, password: '' });
+                        // Auto-clear confirm password error if passwords now match
+                        if (step1Errors.confirmPassword && confirmPassword === text)
+                          setStep1Errors({ ...step1Errors, confirmPassword: '' });
+                      }}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete="new-password"
+                      textContentType="newPassword"
                     />
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.eyeToggleWrapper}
+                    >
+                      <Ionicons
+                        name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={20}
+                        color={colors.mutedForeground}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {step1Errors.password ? (
+                    <Text style={[styles.errorText, { color: colors.primary }]}>
+                      {step1Errors.password}
+                    </Text>
+                  ) : null}
                 </View>
-                {step1Errors.password ? (
-                  <Text style={[styles.errorText, { color: colors.primary }]}>
-                    {step1Errors.password}
+
+                <View style={[styles.passwordField, styles.passwordFieldLast]}>
+                  <Text style={[styles.label, { color: colors.mutedForeground }]}>
+                    Confirm Password
                   </Text>
-                ) : null}
+                  <View
+                    style={[
+                      styles.inputWrapper,
+                      {
+                        backgroundColor: '#1C1C1E',
+                        borderColor: step1Errors.confirmPassword ? colors.primary : '#2E2E2E',
+                      },
+                    ]}
+                  >
+                    <View style={styles.fieldIconWrapper}>
+                      <Ionicons
+                        name="lock-closed-outline"
+                        size={20}
+                        color={colors.mutedForeground}
+                      />
+                    </View>
+                    <TextInput
+                      style={[styles.textInput, { color: colors.foreground }]}
+                      placeholder="••••••••"
+                      placeholderTextColor="#555555"
+                      value={confirmPassword}
+                      onChangeText={(text) => {
+                        setConfirmPassword(text);
+                        if (step1Errors.confirmPassword)
+                          setStep1Errors({ ...step1Errors, confirmPassword: '' });
+                        // Auto-clear password error if passwords now match
+                        if (step1Errors.password && password === text)
+                          setStep1Errors({ ...step1Errors, password: '' });
+                      }}
+                      secureTextEntry={!showConfirmPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete="new-password"
+                      textContentType="newPassword"
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      style={styles.eyeToggleWrapper}
+                    >
+                      <Ionicons
+                        name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={20}
+                        color={colors.mutedForeground}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {step1Errors.confirmPassword ? (
+                    <Text style={[styles.errorText, { color: colors.primary }]}>
+                      {step1Errors.confirmPassword}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
 
               <View style={styles.inputGroup}>
@@ -738,73 +1000,175 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
                 </Text>
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: colors.mutedForeground }]}>AGE</Text>
-                <View
-                  style={[
-                    styles.inputWrapper,
-                    {
-                      backgroundColor: '#1C1C1E',
-                      borderColor: step2Errors.age ? colors.primary : '#2E2E2E',
-                    },
-                  ]}
-                >
-                  <View style={styles.fieldIconWrapper}>
-                    <Ionicons name="calendar-outline" size={20} color={colors.mutedForeground} />
-                  </View>
-                  <TextInput
-                    style={[styles.textInput, { color: colors.foreground }]}
-                    placeholder="25"
-                    placeholderTextColor="#555555"
-                    value={age}
-                    onChangeText={(text) => {
-                      setAge(text);
-                      if (step2Errors.age) setStep2Errors({ ...step2Errors, age: '' });
-                    }}
-                    keyboardType="numeric"
-                  />
+              {/* Age and Gender side by side */}
+              <View style={styles.rowGroup}>
+                <View style={styles.rowField}>
+                  <Text style={[styles.label, { color: colors.mutedForeground }]}>AGE</Text>
+                  <TouchableOpacity
+                    onPress={() => openModal('age')}
+                    style={[
+                      styles.inputWrapper,
+                      {
+                        backgroundColor: '#1C1C1E',
+                        borderColor: step2Errors.age ? colors.primary : '#2E2E2E',
+                      },
+                    ]}
+                  >
+                    <View style={styles.fieldIconWrapper}>
+                      <Ionicons name="calendar-outline" size={20} color={colors.mutedForeground} />
+                    </View>
+                    <Text
+                      style={[
+                        styles.textInput,
+                        {
+                          color: age ? colors.foreground : '#555555',
+                          paddingTop: 14,
+                          paddingBottom: 14,
+                        },
+                      ]}
+                    >
+                      {age || '25'}
+                    </Text>
+                  </TouchableOpacity>
+                  {step2Errors.age ? (
+                    <Text style={[styles.errorText, { color: colors.primary }]}>
+                      {step2Errors.age}
+                    </Text>
+                  ) : null}
                 </View>
-                {step2Errors.age ? (
-                  <Text style={[styles.errorText, { color: colors.primary }]}>
-                    {step2Errors.age}
-                  </Text>
-                ) : null}
+
+                <View style={[styles.rowField, styles.rowFieldLast]}>
+                  <Text style={[styles.label, { color: colors.mutedForeground }]}>GENDER</Text>
+                  <TouchableOpacity
+                    onPress={() => openModal('gender')}
+                    style={[
+                      styles.inputWrapper,
+                      {
+                        backgroundColor: '#1C1C1E',
+                        borderColor: step2Errors.gender ? colors.primary : '#2E2E2E',
+                      },
+                    ]}
+                  >
+                    <View style={styles.fieldIconWrapper}>
+                      <Ionicons name="people-outline" size={20} color={colors.mutedForeground} />
+                    </View>
+                    <Text
+                      style={[
+                        styles.textInput,
+                        {
+                          color: gender ? colors.foreground : '#555555',
+                          paddingTop: 14,
+                          paddingBottom: 14,
+                        },
+                      ]}
+                    >
+                      {gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : 'Select gender'}
+                    </Text>
+                  </TouchableOpacity>
+                  {step2Errors.gender ? (
+                    <Text style={[styles.errorText, { color: colors.primary }]}>
+                      {step2Errors.gender}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: colors.mutedForeground }]}>
-                  WEIGHT (KG)
-                </Text>
-                <View
-                  style={[
-                    styles.inputWrapper,
-                    {
-                      backgroundColor: '#1C1C1E',
-                      borderColor: step2Errors.weight ? colors.primary : '#2E2E2E',
-                    },
-                  ]}
-                >
-                  <View style={styles.fieldIconWrapper}>
-                    <Ionicons name="barbell-outline" size={20} color={colors.mutedForeground} />
-                  </View>
-                  <TextInput
-                    style={[styles.textInput, { color: colors.foreground }]}
-                    placeholder="70"
-                    placeholderTextColor="#555555"
-                    value={weight}
-                    onChangeText={(text) => {
-                      setWeight(text);
-                      if (step2Errors.weight) setStep2Errors({ ...step2Errors, weight: '' });
-                    }}
-                    keyboardType="numeric"
-                  />
-                </View>
-                {step2Errors.weight ? (
-                  <Text style={[styles.errorText, { color: colors.primary }]}>
-                    {step2Errors.weight}
+              {/* Weight and Height side by side */}
+              <View style={styles.rowGroup}>
+                <View style={styles.rowField}>
+                  <Text style={[styles.label, { color: colors.mutedForeground }]}>
+                    WEIGHT (KG)
                   </Text>
-                ) : null}
+                  <TouchableOpacity
+                    onPress={() => openModal('weight')}
+                    style={[
+                      styles.inputWrapper,
+                      {
+                        backgroundColor: '#1C1C1E',
+                        borderColor: step2Errors.weight ? colors.primary : '#2E2E2E',
+                      },
+                    ]}
+                  >
+                    <View style={styles.fieldIconWrapper}>
+                      <Ionicons name="fitness-outline" size={20} color={colors.mutedForeground} />
+                    </View>
+                    <Text
+                      style={[
+                        styles.textInput,
+                        {
+                          color: weight ? colors.foreground : '#555555',
+                          paddingTop: 14,
+                          paddingBottom: 14,
+                        },
+                      ]}
+                    >
+                      {weight ? `${weight.toFixed(1)} kg` : '70.0 kg'}
+                    </Text>
+                  </TouchableOpacity>
+                  {step2Errors.weight ? (
+                    <Text style={[styles.errorText, { color: colors.primary }]}>
+                      {step2Errors.weight}
+                    </Text>
+                  ) : null}
+                </View>
+
+                <View style={[styles.rowField, styles.rowFieldLast]}>
+                  <Text style={[styles.label, { color: colors.mutedForeground }]}>
+                    HEIGHT
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => openModal('height')}
+                    style={[
+                      styles.inputWrapper,
+                      {
+                        backgroundColor: '#1C1C1E',
+                        borderColor: step2Errors.height ? colors.primary : '#2E2E2E',
+                      },
+                    ]}
+                  >
+                    <View style={styles.fieldIconWrapper}>
+                      <Ionicons name="resize-outline" size={20} color={colors.mutedForeground} />
+                    </View>
+                    <Text
+                      style={[
+                        styles.textInput,
+                        {
+                          color: height ? colors.foreground : '#555555',
+                          paddingTop: 14,
+                          paddingBottom: 14,
+                        },
+                      ]}
+                    >
+                      {height ? `${height} cm` : '175 cm'}
+                    </Text>
+                  </TouchableOpacity>
+                  {step2Errors.height ? (
+                    <Text style={[styles.errorText, { color: colors.primary }]}>
+                      {step2Errors.height}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
+
+              {/* Health Status Detection */}
+              {healthStatus && healthStatus.bmi && (
+                <View style={[styles.healthStatusContainer, { backgroundColor: healthStatus.backgroundColor, borderColor: healthStatus.color }]}>
+                  <View style={styles.healthStatusIcon}>
+                    <Ionicons name="fitness-outline" size={24} color={healthStatus.color} />
+                  </View>
+                  <View style={styles.healthStatusContent}>
+                    <Text style={[styles.healthStatusTitle, { color: healthStatus.color }]}>
+                      {healthStatus.status}
+                    </Text>
+                    <Text style={[styles.healthStatusSubtitle, { color: colors.mutedForeground }]}>
+                      BMI: {typeof healthStatus.bmi === 'number' ? healthStatus.bmi.toFixed(1) : healthStatus.bmi}
+                    </Text>
+                    <Text style={[styles.healthStatusRecommendation, { color: colors.foreground }]}>
+                      Recommended: {healthStatus.recommendedGoals?.join(', ') || 'Select a goal'}
+                    </Text>
+                  </View>
+                </View>
+              )}
 
               <View style={styles.inputGroup}>
                 <Text
@@ -824,7 +1188,8 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
                       setStep2Errors({ ...step2Errors, fitnessGoal: '' });
                   },
                   false,
-                  true
+                  true,
+                  healthStatus?.recommendedGoals
                 )}
                 {step2Errors.fitnessGoal ? (
                   <Text
@@ -897,24 +1262,23 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
                   </Text>
                   <View
                     style={[
-                      styles.inputWrapper,
+                      styles.wheelPickerWrapper,
                       {
                         backgroundColor: '#1C1C1E',
                         borderColor: step2Errors.weight ? colors.primary : '#2E2E2E',
                       },
                     ]}
                   >
-                    <TextInput
-                      style={[styles.textInput, { color: colors.foreground }]}
-                      placeholder="70"
-                      placeholderTextColor="#555555"
+                    <WheelPicker
+                      data={weightData}
                       value={weight}
-                      onChangeText={(text) => {
-                        setWeight(text);
+                      onValueChanged={({ item }) => {
+                        setWeight(item.value);
                         if (step2Errors.weight)
                           setStep2Errors({ ...step2Errors, weight: '' });
                       }}
-                      keyboardType="numeric"
+                      style={styles.wheelPicker}
+                      itemTextStyle={styles.wheelText}
                     />
                   </View>
                   {step2Errors.weight ? (
@@ -923,6 +1287,106 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
                     </Text>
                   ) : null}
                 </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: colors.mutedForeground }]}>
+                  HEIGHT
+                </Text>
+                <View style={styles.unitToggle}>
+                  <TouchableOpacity
+                    style={[
+                      styles.unitButton,
+                      heightUnit === 'ft_in' && styles.unitButtonActive,
+                    ]}
+                    onPress={() => handleHeightUnitChange('ft_in')}
+                  >
+                    <Text
+                      style={[
+                        styles.unitText,
+                        heightUnit === 'ft_in' && styles.unitTextActive,
+                      ]}
+                    >
+                      FT/IN
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.unitButton,
+                      heightUnit === 'cm' && styles.unitButtonActive,
+                    ]}
+                    onPress={() => handleHeightUnitChange('cm')}
+                  >
+                    <Text
+                      style={[
+                        styles.unitText,
+                        heightUnit === 'cm' && styles.unitTextActive,
+                      ]}
+                    >
+                      CM
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {heightUnit === 'ft_in' ? (
+                  <View style={styles.heightRow}>
+                    <View style={[styles.wheelPickerWrapper, styles.wheelPickerHalf, { backgroundColor: '#1C1C1E', borderColor: step2Errors.height ? colors.primary : '#2E2E2E' }]}>
+                      <Text style={[styles.wheelLabel, { color: colors.mutedForeground }]}>ft</Text>
+                      <WheelPicker
+                        data={feetData}
+                        value={feet}
+                        onValueChanged={({ item }) => {
+                          setFeet(item.value);
+                          if (step2Errors.height) setStep2Errors({ ...step2Errors, height: '' });
+                        }}
+                        style={styles.wheelPicker}
+                        itemTextStyle={styles.wheelText}
+                      />
+                    </View>
+
+                    <Text style={[styles.separator, { color: colors.mutedForeground }]}>'</Text>
+
+                    <View style={[styles.wheelPickerWrapper, styles.wheelPickerHalf, { backgroundColor: '#1C1C1E', borderColor: step2Errors.height ? colors.primary : '#2E2E2E' }]}>
+                      <Text style={[styles.wheelLabel, { color: colors.mutedForeground }]}>in</Text>
+                      <WheelPicker
+                        data={inchesData}
+                        value={inches}
+                        onValueChanged={({ item }) => {
+                          setInches(item.value);
+                          if (step2Errors.height) setStep2Errors({ ...step2Errors, height: '' });
+                        }}
+                        style={styles.wheelPicker}
+                        itemTextStyle={styles.wheelText}
+                      />
+                    </View>
+                  </View>
+                ) : (
+                  <View
+                    style={[
+                      styles.wheelPickerWrapper,
+                      {
+                        backgroundColor: '#1C1C1E',
+                        borderColor: step2Errors.height ? colors.primary : '#2E2E2E',
+                      },
+                    ]}
+                  >
+                    <WheelPicker
+                      data={heightData}
+                      value={height}
+                      onValueChanged={({ item }) => {
+                        setHeight(item.value);
+                        if (step2Errors.height) setStep2Errors({ ...step2Errors, height: '' });
+                      }}
+                      style={styles.wheelPicker}
+                      itemTextStyle={styles.wheelText}
+                    />
+                  </View>
+                )}
+                {step2Errors.height ? (
+                  <Text style={[styles.errorText, { color: colors.primary }]}>
+                    {step2Errors.height}
+                  </Text>
+                ) : null}
               </View>
 
               <View style={styles.inputGroup}>
@@ -1234,7 +1698,7 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
                   AGE / WEIGHT
                 </Text>
                 <Text style={[styles.reviewValue, { color: colors.foreground }]}>
-                  {age.trim()} yrs · {weight.trim()} kg
+                  {age.trim()} yrs · {convertWeightToKg().toFixed(1)} kg
                 </Text>
               </View>
               <View style={styles.reviewBlock}>
@@ -1310,6 +1774,24 @@ const RegisterScreen: React.FC = ({ navigation }: any) => {
         buttonLabel="GOT IT"
         onClose={() => setAlert(null)}
       />
+      <CustomRulerPicker
+        visible={modalType !== null}
+        title={
+          modalType === 'age' ? 'SELECT AGE' :
+          modalType === 'gender' ? 'SELECT GENDER' :
+          modalType === 'height' ? 'SELECT HEIGHT' :
+          'SELECT WEIGHT'
+        }
+        type={modalType || 'age'}
+        selectedValue={
+          modalType === 'age' ? age :
+          modalType === 'gender' ? gender :
+          modalType === 'height' ? height.toString() :
+          modalType === 'weight' ? weight.toString() : ''
+        }
+        onClose={closeModal}
+        onSelect={handleModalSelect}
+      />
     </KeyboardAvoidingView>
   );
 };
@@ -1351,13 +1833,13 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   logoImage: {
-    width: 280,
-    height: 72,
-    maxWidth: '90%',
+    width: 180,
+    height: 180,
+    maxWidth: '80%',
   },
   logoImageSmall: {
-    width: 200,
-    height: 52,
+    width: 140,
+    height: 140,
   },
   formSection: {
     paddingHorizontal: 24,
@@ -1419,6 +1901,30 @@ const styles = StyleSheet.create({
   nameFieldLast: {
     marginRight: 0,
   },
+  passwordRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  passwordField: {
+    flex: 1,
+    minWidth: 0,
+  },
+  passwordFieldLast: {
+    marginRight: 0,
+  },
+  rowGroup: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  rowField: {
+    flex: 1,
+    minWidth: 0,
+  },
+  rowFieldLast: {
+    marginRight: 0,
+  },
   inputGroup: {
     marginBottom: 16,
   },
@@ -1450,6 +1956,75 @@ const styles = StyleSheet.create({
     height: '100%',
     fontSize: 15,
     fontFamily: 'Inter_500Medium',
+  },
+  wheelPickerWrapper: {
+    height: 160,
+    width: '100%',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    overflow: 'hidden',
+  },
+  wheelPicker: {
+    flex: 1,
+    height: 140,
+  },
+  wheelPickerSmall: {
+    flex: 1,
+    height: 100,
+  },
+  wheelText: {
+    fontSize: 18,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  unitToggle: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  unitButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#2C2C2E',
+  },
+  unitButtonActive: {
+    backgroundColor: '#3C3C3E',
+  },
+  unitText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#8E8E93',
+  },
+  unitTextActive: {
+    color: '#FFFFFF',
+  },
+  heightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  wheelPickerHalf: {
+    flex: 1,
+  },
+  wheelLabel: {
+    position: 'absolute',
+    top: 8,
+    left: 12,
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: '#8E8E93',
+  },
+  separator: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#8E8E93',
   },
   eyeToggleWrapper: {
     padding: 6,
@@ -1529,6 +2104,43 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   chipText: {
+    fontSize: 13,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  recommendedBadge: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  healthStatusContainer: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  healthStatusIcon: {
+    marginRight: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  healthStatusContent: {
+    flex: 1,
+  },
+  healthStatusTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter_700Bold',
+    marginBottom: 4,
+  },
+  healthStatusSubtitle: {
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+    marginBottom: 6,
+  },
+  healthStatusRecommendation: {
     fontSize: 13,
     fontFamily: 'Inter_600SemiBold',
   },

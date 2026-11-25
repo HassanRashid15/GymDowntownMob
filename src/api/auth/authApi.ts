@@ -97,6 +97,19 @@ export const resetPasswordForEmail = async (email: string) => {
   }
 };
 
+/** Verify current password then set a new one (authenticated user). */
+export const changePassword = async (email: string, currentPassword: string, newPassword: string) => {
+  const normalized = normalizeEmail(email);
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: normalized,
+    password: currentPassword,
+  });
+  if (signInError) throwAuthError(signInError);
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throwAuthError(error);
+};
+
 export const resendVerificationEmail = async (email: string) => {
   const { error } = await supabase.auth.resend({
     type: 'signup',

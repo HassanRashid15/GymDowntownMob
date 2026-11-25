@@ -18,6 +18,8 @@ import { useNavigation } from '@react-navigation/native';
 import { navigateBackOrTo } from '../navigation/navigationHelpers';
 import { getNameInitials } from '../utils/nameInitials';
 import { getRoleLabel } from '../types/user';
+import { AGE_OPTIONS, HEIGHT_OPTIONS, WEIGHT_OPTIONS, USER_GENDER_OPTIONS } from '../types/user';
+import CustomRulerPicker from '../components/CustomRulerPicker';
 
 const SALMON = '#E88E83';
 const BRONZE_BORDER = '#C5A059';
@@ -32,6 +34,10 @@ interface ProfileFormState {
   name: string;
   phone: string;
   avatar: string;
+  age: string;
+  gender: string;
+  height: string;
+  weight: string;
 }
 
 type ProfileFormErrors = Partial<Record<keyof ProfileFormState, string>>;
@@ -65,10 +71,15 @@ const ProfileScreen: React.FC = () => {
     name: '',
     phone: '',
     avatar: '',
+    age: '',
+    gender: '',
+    height: '',
+    weight: '',
   });
   const [profileErrors, setProfileErrors] = useState<ProfileFormErrors>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [modalType, setModalType] = useState<'age' | 'gender' | 'height' | 'weight' | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -76,6 +87,10 @@ const ProfileScreen: React.FC = () => {
       name: user.name,
       phone: user.phone ?? '',
       avatar: user.avatar ?? '',
+      age: user.age ?? '',
+      gender: user.gender ?? '',
+      height: user.height ?? '',
+      weight: user.weight ?? '',
     });
   }, [user]);
 
@@ -93,6 +108,31 @@ const ProfileScreen: React.FC = () => {
       });
     }
     if (saved) setSaved(false);
+  };
+
+  const openModal = (type: 'age' | 'gender' | 'height' | 'weight') => {
+    setModalType(type);
+  };
+
+  const closeModal = () => {
+    setModalType(null);
+  };
+
+  const handleModalSelect = (value: string) => {
+    switch (modalType) {
+      case 'age':
+        updateField('age', value);
+        break;
+      case 'gender':
+        updateField('gender', value);
+        break;
+      case 'height':
+        updateField('height', value);
+        break;
+      case 'weight':
+        updateField('weight', value);
+        break;
+    }
   };
 
   const validateForm = (): ProfileFormErrors => {
@@ -134,10 +174,14 @@ const ProfileScreen: React.FC = () => {
         name: profileForm.name,
         phone: profileForm.phone,
         avatar: profileForm.avatar,
+        age: profileForm.age,
+        gender: profileForm.gender,
+        height: profileForm.height,
+        weight: profileForm.weight,
       });
       setSaved(true);
     } catch {
-      setProfileErrors({ email: 'Could not save profile. Try again.' });
+      setProfileErrors({ name: 'Could not save profile. Try again.' });
     } finally {
       setIsSaving(false);
     }
@@ -257,6 +301,69 @@ const ProfileScreen: React.FC = () => {
             />
           </FormField>
 
+          <View style={[styles.formCard, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 16 }]}>
+            <Text style={[styles.formTitle, { color: colors.foreground }]}>FITNESS PROFILE</Text>
+            <Text style={[styles.formHint, { color: colors.mutedForeground }]}>
+              Update your fitness details below.
+            </Text>
+
+            <FormField label="Age" colors={colors}>
+              <TouchableOpacity
+                onPress={() => openModal('age')}
+                style={[
+                  styles.pickerInput,
+                  { borderColor: colors.border, backgroundColor: colors.background },
+                ]}
+              >
+                <Text style={[styles.pickerText, { color: profileForm.age ? colors.foreground : colors.mutedForeground }]}>
+                  {profileForm.age || 'Select age'}
+                </Text>
+              </TouchableOpacity>
+            </FormField>
+
+            <FormField label="Gender" colors={colors}>
+              <TouchableOpacity
+                onPress={() => openModal('gender')}
+                style={[
+                  styles.pickerInput,
+                  { borderColor: colors.border, backgroundColor: colors.background },
+                ]}
+              >
+                <Text style={[styles.pickerText, { color: profileForm.gender ? colors.foreground : colors.mutedForeground }]}>
+                  {profileForm.gender || 'Select gender'}
+                </Text>
+              </TouchableOpacity>
+            </FormField>
+
+            <FormField label="Height" colors={colors}>
+              <TouchableOpacity
+                onPress={() => openModal('height')}
+                style={[
+                  styles.pickerInput,
+                  { borderColor: colors.border, backgroundColor: colors.background },
+                ]}
+              >
+                <Text style={[styles.pickerText, { color: profileForm.height ? colors.foreground : colors.mutedForeground }]}>
+                  {profileForm.height ? `${profileForm.height} cm` : 'Select height'}
+                </Text>
+              </TouchableOpacity>
+            </FormField>
+
+            <FormField label="Weight" colors={colors}>
+              <TouchableOpacity
+                onPress={() => openModal('weight')}
+                style={[
+                  styles.pickerInput,
+                  { borderColor: colors.border, backgroundColor: colors.background },
+                ]}
+              >
+                <Text style={[styles.pickerText, { color: profileForm.weight ? colors.foreground : colors.mutedForeground }]}>
+                  {profileForm.weight ? `${profileForm.weight} kg` : 'Select weight'}
+                </Text>
+              </TouchableOpacity>
+            </FormField>
+          </View>
+
           <TouchableOpacity
             onPress={handleSave}
             disabled={isSaving}
@@ -269,6 +376,25 @@ const ProfileScreen: React.FC = () => {
             )}
           </TouchableOpacity>
         </View>
+
+        <CustomRulerPicker
+          visible={modalType !== null}
+          title={
+            modalType === 'age' ? 'SELECT AGE' :
+            modalType === 'gender' ? 'SELECT GENDER' :
+            modalType === 'height' ? 'SELECT HEIGHT' :
+            'SELECT WEIGHT'
+          }
+          type={modalType || 'age'}
+          selectedValue={
+            modalType === 'age' ? profileForm.age :
+            modalType === 'gender' ? profileForm.gender :
+            modalType === 'height' ? profileForm.height :
+            modalType === 'weight' ? profileForm.weight : ''
+          }
+          onClose={closeModal}
+          onSelect={handleModalSelect}
+        />
       </ScreenScrollView>
     </View>
   );
@@ -436,6 +562,18 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 11,
+    fontFamily: 'Inter_500Medium',
+    fontSize: 14,
+  },
+  pickerInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  pickerText: {
     fontFamily: 'Inter_500Medium',
     fontSize: 14,
   },

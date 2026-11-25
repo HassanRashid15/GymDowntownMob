@@ -60,6 +60,7 @@ type UserFormState = {
   lastName: string;
   email: string;
   password: string;
+  confirmPassword: string;
   phone: string;
   gender: UserGender | '';
   bloodGroup: UserBloodGroup | '';
@@ -72,6 +73,7 @@ const emptyForm = (): UserFormState => ({
   lastName: '',
   email: '',
   password: '',
+  confirmPassword: '',
   phone: '',
   gender: '',
   bloodGroup: '',
@@ -190,6 +192,7 @@ const UserManagementScreen: React.FC = () => {
       lastName: entry.lastName ?? parsed.lastName,
       email: entry.email,
       password: '',
+      confirmPassword: '',
       phone: entry.phone ?? '',
       gender: entry.gender ?? '',
       bloodGroup: entry.bloodGroup ?? '',
@@ -235,6 +238,22 @@ const UserManagementScreen: React.FC = () => {
     }
     if (!editingUserId && !form.password.trim()) {
       setFormError('Password is required for new users.');
+      return;
+    }
+    if (!editingUserId && form.password.trim().length < 8) {
+      setFormError('Password must be at least 8 characters.');
+      return;
+    }
+    if (!editingUserId && form.password !== form.confirmPassword) {
+      setFormError('Passwords do not match.');
+      return;
+    }
+    if (editingUserId && form.password.trim() && form.password.trim().length < 8) {
+      setFormError('New password must be at least 8 characters.');
+      return;
+    }
+    if (editingUserId && form.password.trim() && form.password !== form.confirmPassword) {
+      setFormError('Passwords do not match.');
       return;
     }
 
@@ -614,7 +633,15 @@ const UserManagementScreen: React.FC = () => {
               <TextInput
                 value={form.password}
                 onChangeText={(value) => setForm((prev) => ({ ...prev, password: value }))}
-                placeholder={editingUserId ? 'New password (optional)' : 'Password'}
+                placeholder={editingUserId ? 'New password (optional, min 8)' : 'Password (required, min 8)'}
+                placeholderTextColor={colors.mutedForeground}
+                secureTextEntry
+                style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
+              />
+              <TextInput
+                value={form.confirmPassword}
+                onChangeText={(value) => setForm((prev) => ({ ...prev, confirmPassword: value }))}
+                placeholder={editingUserId ? 'Confirm new password' : 'Confirm password (required)'}
                 placeholderTextColor={colors.mutedForeground}
                 secureTextEntry
                 style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
@@ -969,7 +996,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheetBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.65)',
   },
   sheetCard: {

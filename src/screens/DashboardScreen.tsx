@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
-  Alert,
   Dimensions,
 } from 'react-native';
 import Svg, {
@@ -23,6 +22,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useGymPlanAccess } from '../context/SubscriptionContext';
 import { useNotifications } from '../context/NotificationsContext';
+import { getProgress, isHubApiConfigured } from '../api/hub';
+import MemberBillingCard from '../components/MemberBillingCard';
 
 const { width } = Dimensions.get('window');
 const SALMON = '#E88E83';
@@ -282,6 +283,25 @@ const RevenueSparkline = () => (
 const UserDashboard: React.FC<{ navigation: any; user: any }> = ({ navigation, user }) => {
   const { colors } = useTheme();
   const firstName = user?.name?.split(' ')[0]?.toUpperCase() || 'ATHLETE';
+  const [monthStats, setMonthStats] = useState({
+    streak: 5,
+    workouts: 12,
+    hours: '18.5',
+  });
+
+  useEffect(() => {
+    if (!isHubApiConfigured()) return;
+    getProgress({ days: 30 })
+      .then((data) => {
+        const mins = data.stats?.totalDuration ?? 0;
+        setMonthStats({
+          streak: data.stats?.streak ?? 0,
+          workouts: data.stats?.trainedDays ?? 0,
+          hours: (Math.round((mins / 60) * 10) / 10).toFixed(1),
+        });
+      })
+      .catch(() => undefined);
+  }, []);
 
   const activityIcon = (icon: string) => {
     if (icon === 'run') return <RunIcon color={SALMON} size={18} />;
@@ -320,8 +340,8 @@ const UserDashboard: React.FC<{ navigation: any; user: any }> = ({ navigation, u
       <View style={styles.quickActions}>
         {[
           { label: 'BOOK', icon: <CalendarIcon color={SALMON} size={24} />, onPress: () => navigation.navigate('Classes') },
-          { label: 'PROGRESS', icon: <TrendUpIcon color={SALMON} size={24} />, onPress: () => Alert.alert('Progress', 'Progress tracker coming soon!') },
-          { label: 'GOALS', icon: <FlagIcon color={SALMON} size={24} />, onPress: () => Alert.alert('Goals', 'Goal-setting coming soon!') },
+          { label: 'PROGRESS', icon: <TrendUpIcon color={SALMON} size={24} />, onPress: () => navigation.navigate('Progress') },
+          { label: 'CHECK-IN', icon: <FlagIcon color={SALMON} size={24} />, onPress: () => navigation.navigate('Attendance') },
         ].map((a) => (
           <TouchableOpacity key={a.label} onPress={a.onPress} style={styles.quickActionBtn}>
             <View style={[styles.quickActionIcon, { backgroundColor: '#1C1C1E', borderColor: CARD_BORDER }]}>
@@ -332,6 +352,12 @@ const UserDashboard: React.FC<{ navigation: any; user: any }> = ({ navigation, u
         ))}
       </View>
 
+      {isHubApiConfigured() ? (
+        <View style={{ paddingHorizontal: 20, marginBottom: 8 }}>
+          <MemberBillingCard />
+        </View>
+      ) : null}
+
       {/* ── Stats: This Month ── */}
       <View style={styles.sectionBlock}>
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>THIS MONTH</Text>
@@ -340,7 +366,7 @@ const UserDashboard: React.FC<{ navigation: any; user: any }> = ({ navigation, u
         <View style={[styles.streakBanner, { backgroundColor: CARD_BG, borderColor: CARD_BORDER }]}>
           <View>
             <Text style={[styles.streakMeta, { color: colors.mutedForeground }]}>CURRENT STREAK</Text>
-            <Text style={[styles.streakValue, { color: colors.foreground }]}>5 Days</Text>
+            <Text style={[styles.streakValue, { color: colors.foreground }]}>{monthStats.streak} Days</Text>
           </View>
           <View style={[styles.streakIconWrap, { backgroundColor: 'rgba(232,142,131,0.12)' }]}>
             <FireIcon color={SALMON} size={28} />
@@ -354,14 +380,14 @@ const UserDashboard: React.FC<{ navigation: any; user: any }> = ({ navigation, u
               <Text style={[styles.statCardLabel, { color: colors.mutedForeground }]}>WORKOUTS</Text>
               <TrendUpIcon color={SALMON} size={16} />
             </View>
-            <Text style={[styles.statCardValue, { color: colors.foreground }]}>12</Text>
+            <Text style={[styles.statCardValue, { color: colors.foreground }]}>{monthStats.workouts}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: CARD_BG, borderColor: CARD_BORDER }]}>
             <View style={styles.statCardHeader}>
               <Text style={[styles.statCardLabel, { color: colors.mutedForeground }]}>HOURS ACTIVE</Text>
               <TimerIcon color={SALMON} size={16} />
             </View>
-            <Text style={[styles.statCardValue, { color: colors.foreground }]}>18.5</Text>
+            <Text style={[styles.statCardValue, { color: colors.foreground }]}>{monthStats.hours}</Text>
           </View>
         </View>
       </View>
@@ -486,6 +512,11 @@ const SuperAdminDashboard: React.FC<{ navigation: any; user: any }> = ({ navigat
         {[
           { label: 'USERS', onPress: () => navigation.navigate('Users') },
           { label: 'REVENUE', onPress: () => navigation.navigate('Revenue') },
+          { label: 'APPROVALS', onPress: () => navigation.navigate('PendingApprovals') },
+          { label: 'STATS', onPress: () => navigation.navigate('Statistics') },
+          { label: 'PROMOS', onPress: () => navigation.navigate('Promotions') },
+          { label: 'TRAFFIC', onPress: () => navigation.navigate('Traffic') },
+          { label: 'FEES', onPress: () => navigation.navigate('MembershipFees') },
           { label: 'PLAN', onPress: () => navigation.navigate('Join') },
         ].map((action) => (
           <TouchableOpacity key={action.label} onPress={action.onPress} style={styles.quickActionBtn}>
@@ -694,7 +725,7 @@ const AdminDashboard: React.FC<{ navigation: any; user: any }> = ({ navigation }
       <View style={styles.sectionBlock}>
         <View style={styles.sectionRowHeader}>
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground, marginBottom: 0 }]}>WEEKLY ATTENDANCE</Text>
-          <TouchableOpacity onPress={() => Alert.alert('Attendance', 'Detailed attendance report coming soon!')}>
+          <TouchableOpacity onPress={() => navigation.navigate('Attendance')}>
             <Text style={[styles.detailsLink, { color: SALMON }]}>DETAILS</Text>
           </TouchableOpacity>
         </View>
@@ -718,6 +749,12 @@ const AdminDashboard: React.FC<{ navigation: any; user: any }> = ({ navigation }
             ))}
           </View>
         </View>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('MonthlyFee')}
+          style={{ marginTop: 12 }}
+        >
+          <Text style={[styles.detailsLink, { color: SALMON }]}>MONTHLY FEE TABLE →</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.sectionBlock}>
@@ -905,6 +942,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  quickActionIconText: {
+    fontSize: 18,
+    fontFamily: 'Inter_700Bold',
   },
   quickActionLabel: {
     fontSize: 10,

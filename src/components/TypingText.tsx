@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextStyle, StyleSheet } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, TextStyle, StyleSheet, Platform, StyleProp } from 'react-native';
 import GradientText from './GradientText';
 
 interface TypingTextProps {
   words: string[];
-  style?: TextStyle;
+  style?: StyleProp<TextStyle>;
   typingSpeed?: number;
   deletingSpeed?: number;
   pauseDuration?: number;
+  /** Solid color instead of gradient mask (Hub hero style) */
+  solidColor?: string;
+  cursorColor?: string;
 }
 
 const TypingText: React.FC<TypingTextProps> = ({
@@ -16,10 +19,17 @@ const TypingText: React.FC<TypingTextProps> = ({
   typingSpeed = 120,
   deletingSpeed = 60,
   pauseDuration = 2000,
+  solidColor,
+  cursorColor = '#FA1818',
 }) => {
   const [wordIndex, setWordIndex] = useState(0);
   const [displayText, setDisplayText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const longestWord = useMemo(
+    () => words.reduce((a, b) => (a.length >= b.length ? a : b), words[0] || ''),
+    [words]
+  );
 
   useEffect(() => {
     const currentWord = words[wordIndex];
@@ -45,29 +55,57 @@ const TypingText: React.FC<TypingTextProps> = ({
     return () => clearTimeout(timeout);
   }, [displayText, isDeleting, wordIndex, words, typingSpeed, deletingSpeed, pauseDuration]);
 
+  const textStyle = [styles.text, style, Platform.OS === 'android' ? styles.androidText : null];
+
   return (
-    <View style={styles.row}>
-      <GradientText style={[styles.text, style]}>{displayText}</GradientText>
-      <Text style={styles.cursor}>|</Text>
+    <View style={styles.wrap}>
+      {/* Invisible spacer keeps height stable (same trick as Hub) */}
+      <Text style={[textStyle, styles.spacer]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        {longestWord}
+      </Text>
+      <View style={styles.row}>
+        {solidColor ? (
+          <Text style={[textStyle, { color: solidColor }]}>{displayText}</Text>
+        ) : (
+          <GradientText style={textStyle}>{displayText}</GradientText>
+        )}
+        <Text style={[styles.cursor, style, { color: cursorColor }]}>|</Text>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  wrap: {
+    position: 'relative',
+    marginBottom: 0,
+    alignSelf: 'flex-start',
+    alignItems: 'flex-start',
+  },
+  spacer: {
+    opacity: 0,
+    textAlign: 'left',
+  },
   row: {
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
   },
   text: {
-    fontSize: 48,
-    lineHeight: 52,
-    minHeight: 52,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 36,
+    lineHeight: 44,
+  },
+  androidText: {
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   cursor: {
-    color: '#FA1818',
     fontFamily: 'BebasNeue_400Regular',
-    fontSize: 48,
-    lineHeight: 52,
+    fontSize: 36,
+    lineHeight: 44,
+    marginLeft: 2,
   },
 });
 

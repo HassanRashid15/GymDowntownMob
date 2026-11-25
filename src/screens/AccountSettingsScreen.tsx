@@ -20,6 +20,7 @@ import { useTwoFactor } from '../context/TwoFactorContext';
 import { useNavigation } from '@react-navigation/native';
 import { navigateBackOrTo } from '../navigation/navigationHelpers';
 import { getTwoFactorCapabilities, TwoFactorCapabilities } from '../utils/twoFactorAuth';
+import { changePassword } from '../api/auth';
 
 const SALMON = '#E88E83';
 const STORAGE_KEY = 'gym_account_settings';
@@ -178,8 +179,8 @@ const AccountSettingsScreen: React.FC = () => {
     }
     if (!passwordForm.newPassword.trim()) {
       errors.newPassword = 'New password is required.';
-    } else if (passwordForm.newPassword.length < 6) {
-      errors.newPassword = 'Password must be at least 6 characters.';
+    } else if (passwordForm.newPassword.length < 8) {
+      errors.newPassword = 'Password must be at least 8 characters.';
     }
     if (!passwordForm.confirmPassword.trim()) {
       errors.confirmPassword = 'Please confirm your new password.';
@@ -195,10 +196,18 @@ const AccountSettingsScreen: React.FC = () => {
       setPasswordErrors(errors);
       return;
     }
+    if (!user?.email) {
+      setPasswordErrors({ currentPassword: 'No email on this account.' });
+      return;
+    }
 
     setIsSavingPassword(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await changePassword(
+        user.email,
+        passwordForm.currentPassword.trim(),
+        passwordForm.newPassword.trim()
+      );
       const next = {
         ...settings,
         passwordLastChanged: new Date().toISOString(),
@@ -206,8 +215,10 @@ const AccountSettingsScreen: React.FC = () => {
       await persistSettings(next);
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setPasswordSaved(true);
-    } catch {
-      setPasswordErrors({ currentPassword: 'Could not update password. Try again.' });
+    } catch (error: any) {
+      setPasswordErrors({
+        currentPassword: error?.message || 'Could not update password. Check current password.',
+      });
     } finally {
       setIsSavingPassword(false);
     }
@@ -321,7 +332,7 @@ const AccountSettingsScreen: React.FC = () => {
               <TextInput
                 value={passwordForm.newPassword}
                 onChangeText={(value) => updatePasswordField('newPassword', value)}
-                placeholder="At least 6 characters"
+                placeholder="At least 8 characters"
                 placeholderTextColor={colors.mutedForeground}
                 secureTextEntry
                 style={inputStyle(!!passwordErrors.newPassword)}

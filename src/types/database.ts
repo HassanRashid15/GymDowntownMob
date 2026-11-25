@@ -20,6 +20,10 @@ export interface Database {
           role: 'customer' | 'admin' | 'super_admin' | null
           phone: string | null
           gym_name: string | null
+          age: string | null
+          gender: string | null
+          height: string | null
+          weight: string | null
           is_approved: boolean | null
           approved_by: string | null
           approved_at: string | null
@@ -34,6 +38,10 @@ export interface Database {
           role?: 'customer' | 'admin' | 'super_admin' | null
           phone?: string | null
           gym_name?: string | null
+          age?: string | null
+          gender?: string | null
+          height?: string | null
+          weight?: string | null
           is_approved?: boolean | null
           approved_by?: string | null
           approved_at?: string | null
@@ -48,9 +56,52 @@ export interface Database {
           role?: 'customer' | 'admin' | 'super_admin' | null
           phone?: string | null
           gym_name?: string | null
+          age?: string | null
+          gender?: string | null
+          height?: string | null
+          weight?: string | null
           is_approved?: boolean | null
           approved_by?: string | null
           approved_at?: string | null
+        }
+        Relationships: []
+      }
+      bmi_records: {
+        Row: {
+          id: string
+          user_id: string
+          bmi: number
+          weight: number
+          height: number
+          weight_unit: 'kg' | 'g' | 'lbs'
+          height_unit: 'cm' | 'ft_in'
+          category: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          bmi: number
+          weight: number
+          height: number
+          weight_unit: 'kg' | 'g' | 'lbs'
+          height_unit: 'cm' | 'ft_in'
+          category: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          bmi?: number
+          weight?: number
+          height?: number
+          weight_unit?: 'kg' | 'g' | 'lbs'
+          height_unit?: 'cm' | 'ft_in'
+          category?: string
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }

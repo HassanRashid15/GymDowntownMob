@@ -9,7 +9,7 @@ type ScreenLayoutProps = {
   route: { name: string };
 };
 
-const AUTH_ROUTES = new Set(['Login', 'Register', 'ForgotPassword']);
+const AUTH_ROUTES = new Set(['Login', 'Register', 'ForgotPassword', 'EmailVerification']);
 /** Screens with their own top chrome — no shared PublicAppHeader */
 const NO_PUBLIC_HEADER = new Set(['Notifications', ...AUTH_ROUTES]);
 

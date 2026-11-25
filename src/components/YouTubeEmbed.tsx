@@ -36,7 +36,6 @@ const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({ videoId, title }) => {
     <View>
       <View style={styles.container}>
         {Platform.OS === 'web' ? (
-          // @ts-expect-error iframe is valid on web
           <iframe
             src={`https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0&modestbranding=1`}
             style={{ width: '100%', height: '100%', border: 'none' }}

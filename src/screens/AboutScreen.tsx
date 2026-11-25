@@ -12,11 +12,7 @@ import Svg, { Path, Circle, Polyline, Line } from 'react-native-svg';
 import ScreenScrollView from '../components/ScreenScrollView';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
-
-let LinearGradient: any;
-if (Platform.OS !== 'web') {
-  LinearGradient = require('react-native-linear-gradient').default;
-}
+import { LinearGradient } from 'expo-linear-gradient';
 
 const SALMON = '#E88E83';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -115,7 +111,7 @@ const AboutScreen: React.FC = () => {
       </View>
     );
 
-    if (LinearGradient && Platform.OS !== 'web') {
+    if (Platform.OS !== 'web') {
       return (
         <TouchableOpacity onPress={goToMembership} activeOpacity={0.85} style={styles.ctaButtonWrap}>
           <LinearGradient colors={['#E88E83', '#FA1818']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaButton}>

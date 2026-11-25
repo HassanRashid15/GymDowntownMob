@@ -14,12 +14,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useTrainers } from '../context/TrainersContext';
 import AdminTrainersTable from '../components/AdminTrainersTable';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Trainer } from '../data/trainers';
-
-let LinearGradient: any;
-if (Platform.OS !== 'web') {
-  LinearGradient = require('react-native-linear-gradient').default;
-}
 
 const SALMON = '#E88E83';
 
@@ -85,7 +81,7 @@ const TrainersScreen: React.FC = ({ navigation }: any) => {
         </View>
       );
 
-      if (LinearGradient && Platform.OS !== 'web') {
+      if (Platform.OS !== 'web') {
         return (
           <TouchableOpacity
             onPress={() => navigation.navigate('TrainerDetail', { trainerId: trainer.id })}

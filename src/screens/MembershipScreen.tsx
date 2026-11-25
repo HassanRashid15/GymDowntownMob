@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,8 @@ import {
   gymSubscriptionFaqs,
   gymSubscriptionPlans,
 } from '../data/gymSubscription';
+import { getMembershipMe, getGymTrainers, isHubApiConfigured, updateHubProfile, type MembershipMe, type GymTrainer } from '../api/hub';
+import MemberBillingCard from '../components/MemberBillingCard';
 
 const SALMON = '#E88E83';
 
@@ -387,6 +389,23 @@ const MemberSubscriptionView: React.FC<{ navigation: any }> = ({ navigation }) =
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [billing, setBilling] = useState<MembershipMe | null>(null);
+  const [trainers, setTrainers] = useState<GymTrainer[]>([]);
+  const [preferredTrainerId, setPreferredTrainerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isHubApiConfigured()) return;
+    getMembershipMe()
+      .then(async (me) => {
+        setBilling(me);
+        setPreferredTrainerId(me.preferredTrainerId ?? null);
+        if (me.gymOwnerId) {
+          const t = await getGymTrainers(me.gymOwnerId).catch(() => ({ trainers: [] }));
+          setTrainers(t.trainers || []);
+        }
+      })
+      .catch(() => undefined);
+  }, [isAuthenticated]);
 
   const getPrice = (price: number) =>
     billingPeriod === 'yearly' ? Math.round(price * 0.8) : price;
@@ -412,6 +431,74 @@ const MemberSubscriptionView: React.FC<{ navigation: any }> = ({ navigation }) =
           Choose the plan that fits your lifestyle. All memberships include access to our premium facilities.
         </Text>
       </View>
+
+      {billing?.hasGym ? (
+        <View style={{ marginHorizontal: 20, marginBottom: 8 }}>
+          <MemberBillingCard billing={billing} />
+          <Card>
+          <TouchableOpacity onPress={() => navigation.navigate('Attendance')} style={{ marginTop: 4 }}>
+            <Text style={{ color: SALMON, fontFamily: 'Inter_700Bold', letterSpacing: 1 }}>
+              CHECK IN →
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('GymDetail', { ownerId: billing.gymOwnerId })
+            }
+            style={{ marginTop: 8 }}
+          >
+            <Text style={{ color: SALMON, fontFamily: 'Inter_700Bold', letterSpacing: 1 }}>
+              PREFERRED TRAINER / GYM →
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('LiveClasses')} style={{ marginTop: 8 }}>
+            <Text style={{ color: SALMON, fontFamily: 'Inter_700Bold', letterSpacing: 1 }}>
+              BOOK CLASSES →
+            </Text>
+          </TouchableOpacity>
+          {trainers.length > 0 ? (
+            <View style={{ marginTop: 14 }}>
+              <Text style={{ color: colors.mutedForeground, fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1 }}>
+                PREFERRED TRAINER
+              </Text>
+              <TouchableOpacity
+                onPress={async () => {
+                  setPreferredTrainerId(null);
+                  await updateHubProfile({ preferred_trainer_id: null }).catch(() => undefined);
+                }}
+                style={{ marginTop: 8 }}
+              >
+                <Text style={{ color: !preferredTrainerId ? SALMON : colors.mutedForeground }}>
+                  {!preferredTrainerId ? '● ' : '○ '}No trainer
+                </Text>
+              </TouchableOpacity>
+              {trainers.map((t) => (
+                <TouchableOpacity
+                  key={t.userId}
+                  onPress={async () => {
+                    setPreferredTrainerId(t.userId);
+                    await updateHubProfile({ preferred_trainer_id: t.userId }).catch((e: any) =>
+                      Alert.alert('Error', e?.message || 'Could not save trainer')
+                    );
+                  }}
+                  style={{ marginTop: 6 }}
+                >
+                  <Text
+                    style={{
+                      color: preferredTrainerId === t.userId ? SALMON : colors.mutedForeground,
+                    }}
+                  >
+                    {preferredTrainerId === t.userId ? '● ' : '○ '}
+                    {t.fullName || 'Trainer'}
+                    {t.specialization ? ` · ${t.specialization}` : ''}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
+        </Card>
+        </View>
+      ) : null}
 
       <View style={styles.billingSection}>
         <Text style={[styles.billingLabel, { color: billingPeriod === 'monthly' ? colors.foreground : colors.mutedForeground }]}>

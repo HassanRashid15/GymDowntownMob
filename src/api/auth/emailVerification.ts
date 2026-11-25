@@ -91,6 +91,34 @@ export const isEmailVerificationDeepLink = (url: string | null | undefined): boo
   );
 };
 
+/** True only when the URL carries auth tokens (not a bare /email-verification page) */
+export const hasAuthCallbackTokens = (url: string | null | undefined): boolean => {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return (
+    lower.includes('access_token=') ||
+    lower.includes('refresh_token=') ||
+    lower.includes('token_hash=') ||
+    (lower.includes('code=') && (lower.includes('type=') || lower.includes('email')))
+  );
+};
+
+/** Persists across EmailVerification remounts so we still leave to Login */
+let verificationFlowCompleted: { email: string; role: 'customer' | 'admin' } | null = null;
+
+export const markVerificationFlowCompleted = (email: string, role: 'customer' | 'admin') => {
+  verificationFlowCompleted = { email, role };
+};
+
+export const consumeVerificationFlowCompleted = () => {
+  const value = verificationFlowCompleted;
+  verificationFlowCompleted = null;
+  return value;
+};
+
+export const peekVerificationFlowCompleted = () => verificationFlowCompleted;
+
+
 /** Redirect target for Supabase confirmation emails */
 export const getEmailVerificationRedirectTo = () => {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin) {

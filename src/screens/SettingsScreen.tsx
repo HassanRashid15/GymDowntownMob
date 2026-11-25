@@ -47,6 +47,16 @@ const EyeOffIcon = ({ color }: { color: string }) => (
   </Svg>
 );
 
+const ScaleIcon = ({ color }: { color: string }) => (
+  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M12 3v18" />
+    <Path d="M8 7h8" />
+    <Path d="M6 11h12" />
+    <Path d="M6 15h12" />
+    <Path d="M8 19h8" />
+  </Svg>
+);
+
 const HelpIcon = ({ color }: { color: string }) => (
   <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <Circle cx="12" cy="12" r="10" />
@@ -144,6 +154,54 @@ const SettingsScreen: React.FC = ({ navigation }: any) => {
 
   const preferenceItems = [
     {
+      icon: <ScaleIcon color={SALMON_COLOR} />,
+      title: 'BMI Calculator',
+      subtitle: 'Track your body mass index',
+      onPress: () => navigation.navigate('BMICalculator'),
+    },
+    {
+      icon: <ScaleIcon color={SALMON_COLOR} />,
+      title: 'Workout Progress',
+      subtitle: 'Log workouts and streaks',
+      onPress: () => navigation.navigate('Progress'),
+    },
+    {
+      icon: <BellIcon color={SALMON_COLOR} />,
+      title: 'Attendance / Check-in',
+      subtitle: 'Gym check-ins',
+      onPress: () => navigation.navigate('Attendance'),
+    },
+    {
+      icon: <CardIcon color={SALMON_COLOR} />,
+      title: 'Find Gyms',
+      subtitle: 'Browse approved gyms',
+      onPress: () => navigation.navigate('Gyms'),
+    },
+    {
+      icon: <CardIcon color={SALMON_COLOR} />,
+      title: 'Live Classes & Schedule',
+      subtitle: 'Book real gym sessions',
+      onPress: () => navigation.navigate('LiveClasses'),
+    },
+    {
+      icon: <ScaleIcon color={SALMON_COLOR} />,
+      title: 'Exercise Library',
+      subtitle: 'Browse movements with demos',
+      onPress: () => navigation.navigate('Exercises'),
+    },
+    {
+      icon: <CardIcon color={SALMON_COLOR} />,
+      title: 'Blog',
+      subtitle: 'Fitness articles',
+      onPress: () => navigation.navigate('Blog'),
+    },
+    {
+      icon: <BellIcon color={SALMON_COLOR} />,
+      title: 'Feedback',
+      subtitle: 'Rate Forge / moderate reviews',
+      onPress: () => navigation.navigate('Feedback'),
+    },
+    {
       icon: <BellIcon color={SALMON_COLOR} />,
       title: 'Notification Preferences',
       onPress: () => navigation.navigate('NotificationPreferences'),
@@ -167,6 +225,12 @@ const SettingsScreen: React.FC = ({ navigation }: any) => {
     ? [
         {
           icon: <UserIcon color="#FA1818" />,
+          title: 'Live Users / Trainers',
+          subtitle: 'Hub accounts',
+          onPress: () => navigation.navigate('LiveUsers'),
+        },
+        {
+          icon: <UserIcon color="#FA1818" />,
           title: 'User Management',
           subtitle: 'Roles, access, and account status',
           onPress: () => navigation.navigate('Users'),
@@ -177,8 +241,75 @@ const SettingsScreen: React.FC = ({ navigation }: any) => {
           subtitle: 'Cross-gym financial overview',
           onPress: () => navigation.navigate('Revenue'),
         },
+        {
+          icon: <CardIcon color="#FA1818" />,
+          title: 'Pending Approvals',
+          subtitle: 'Approve gym owners',
+          onPress: () => navigation.navigate('PendingApprovals'),
+        },
+        {
+          icon: <CardIcon color="#FA1818" />,
+          title: 'Statistics',
+          subtitle: 'Platform snapshot',
+          onPress: () => navigation.navigate('Statistics'),
+        },
+        {
+          icon: <CardIcon color="#FA1818" />,
+          title: 'Promotions',
+          subtitle: 'Home promos + email',
+          onPress: () => navigation.navigate('Promotions'),
+        },
+        {
+          icon: <CardIcon color="#FA1818" />,
+          title: 'Newsletter & Fees',
+          subtitle: 'Subscribers + facility fee',
+          onPress: () => navigation.navigate('Newsletter'),
+        },
+        {
+          icon: <CardIcon color="#FA1818" />,
+          title: 'Membership Set',
+          subtitle: 'Gym owner platform fees',
+          onPress: () => navigation.navigate('MembershipFees'),
+        },
+        {
+          icon: <CardIcon color="#FA1818" />,
+          title: 'Public Traffic',
+          subtitle: 'Recent site visits',
+          onPress: () => navigation.navigate('Traffic'),
+        },
       ]
-    : [];
+    : isAdmin
+      ? [
+          {
+            icon: <CardIcon color="#FA1818" />,
+            title: 'Monthly Fee',
+            subtitle: 'Members billing cycle',
+            onPress: () => navigation.navigate('MonthlyFee'),
+          },
+          {
+            icon: <CardIcon color="#FA1818" />,
+            title: 'Live Classes Admin',
+            subtitle: 'Create classes & sessions',
+            onPress: () => navigation.navigate('LiveClasses'),
+          },
+          {
+            icon: <UserIcon color="#FA1818" />,
+            title: 'Live Users / Trainers',
+            subtitle: 'Hub members & trainers',
+            onPress: () => navigation.navigate('LiveUsers'),
+          },
+          {
+            icon: <UserIcon color="#FA1818" />,
+            title: 'User Management',
+            onPress: () => navigation.navigate('Users'),
+          },
+          {
+            icon: <BellIcon color="#FA1818" />,
+            title: 'Feedback moderation',
+            onPress: () => navigation.navigate('Feedback'),
+          },
+        ]
+      : [];
 
   const renderSettingItem = (item: any) => (
     <TouchableOpacity onPress={item.onPress} style={styles.settingItem}>
@@ -214,6 +345,12 @@ const SettingsScreen: React.FC = ({ navigation }: any) => {
     ];
 
     const publicAppItems = [
+      {
+        icon: <ScaleIcon color={SALMON_COLOR} />,
+        title: 'BMI Calculator',
+        subtitle: 'Track your body mass index',
+        onPress: () => navigation.navigate('BMICalculator'),
+      },
       {
         icon: <HelpIcon color={SALMON_COLOR} />,
         title: 'About Forge Gym',

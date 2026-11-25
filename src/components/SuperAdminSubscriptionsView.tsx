@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   emptyText: { fontFamily: 'Inter_400Regular', fontSize: 14 },
   sheetOverlay: { flex: 1, justifyContent: 'flex-end' },
   sheetBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.65)',
   },
   sheetCard: {

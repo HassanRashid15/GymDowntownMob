@@ -27,7 +27,9 @@ export const buildSignupMetadata = (
     if (options?.gymName) metadata.gym_name = options.gymName.trim();
     if (options?.phone) metadata.phone = options.phone.trim();
     if (options?.fitnessProfile?.age) metadata.fitness_age = options.fitnessProfile.age;
+    if (options?.fitnessProfile?.gender) metadata.gender = options.fitnessProfile.gender;
     if (options?.fitnessProfile?.weight) metadata.fitness_weight = options.fitnessProfile.weight;
+    if (options?.fitnessProfile?.height) metadata.fitness_height = options.fitnessProfile.height;
     return metadata;
   }
 
@@ -37,7 +39,9 @@ export const buildSignupMetadata = (
   return {
     ...metadata,
     fitness_age: fitnessProfile.age,
+    ...(fitnessProfile.gender ? { gender: fitnessProfile.gender } : {}),
     fitness_weight: fitnessProfile.weight,
+    fitness_height: fitnessProfile.height,
     fitness_goal: fitnessProfile.fitnessGoal,
     fitness_experience_level: fitnessProfile.experienceLevel,
     fitness_target_areas: fitnessProfile.targetAreas.join(', '),

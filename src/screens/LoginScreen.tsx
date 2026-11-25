@@ -47,7 +47,7 @@ const LoginScreen: React.FC = ({ navigation, route }: any) => {
   const [pendingCredentials, setPendingCredentials] = useState<{ email: string; password: string } | null>(null);
   const { isCoolingDown, formattedTime, triggerCooldownFromError } = useAuthCooldown();
   const [isScrollEnabled, setIsScrollEnabled] = useState(false);
-  const scrollViewRef = React.useRef<ScrollView>(null);
+  const scrollViewRef = React.useRef<React.ComponentRef<typeof ScrollView>>(null);
   const hasFieldErrors = Boolean(errors.email || errors.password);
   const hasStatusBanner = Boolean(statusBanner);
   const [comingSoon, setComingSoon] = useState<{ title: string; message: string; icon: 'logo-google' | 'logo-apple' } | null>(null);

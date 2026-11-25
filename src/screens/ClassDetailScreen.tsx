@@ -23,12 +23,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenScrollView from '../components/ScreenScrollView';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getClassById } from '../data/classes';
-
-let LinearGradient: any;
-if (Platform.OS !== 'web') {
-  LinearGradient = require('react-native-linear-gradient').default;
-}
 
 const SALMON = '#E88E83';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -180,7 +176,7 @@ const ClassDetailScreen: React.FC = () => {
       );
     }
 
-    if (LinearGradient && Platform.OS !== 'web') {
+    if (Platform.OS !== 'web') {
       return (
         <TouchableOpacity onPress={handleBook} activeOpacity={0.85} style={styles.ctaWrap}>
           <LinearGradient colors={['#E88E83', '#FA1818']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaButton}>
@@ -312,7 +308,7 @@ const ClassDetailScreen: React.FC = () => {
 
           <View style={styles.sectionHeaderRow}>
             <SectionLabel color={SALMON}>
-              SQUAD ({gymClass.spots}/{gymClass.maxSpots})
+              {`SQUAD (${gymClass.spots}/${gymClass.maxSpots})`}
             </SectionLabel>
             <Text style={[styles.zoneTarget, { color: SALMON }]}>
               {gymClass.squadStatus ?? 'FILLING FAST'}

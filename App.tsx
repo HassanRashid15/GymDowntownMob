@@ -20,12 +20,13 @@ import { useTheme } from './src/context/ThemeContext';
 import CustomSplashScreen from './src/components/CustomSplashScreen';
 import {
   getCurrentUrlForAuthCallback,
-  isEmailVerificationDeepLink,
+  hasAuthCallbackTokens,
   markVerificationWelcomeSplashPlayed,
   peekFullNameFromAuthCallbackUrl,
 } from './src/api/auth';
 
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  document.title = 'FORGE';
   const rootStyle = document.getElementById('root-scroll-fix');
   if (!rootStyle) {
     const style = document.createElement('style');
@@ -101,7 +102,8 @@ export default function App() {
           url = await Linking.getInitialURL().catch(() => null);
         }
         if (!cancelled) {
-          const isVerification = isEmailVerificationDeepLink(url);
+          // Only show welcome splash when the email link has auth tokens
+          const isVerification = hasAuthCallbackTokens(url);
           setIsVerificationSplash(isVerification);
           if (isVerification) {
             setVerificationWelcomeName(peekFullNameFromAuthCallbackUrl(url) ?? '');

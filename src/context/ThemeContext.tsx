@@ -4,6 +4,9 @@ import { Colors } from '../theme/colors';
 
 type Theme = 'light' | 'dark';
 
+/** Matches expo-linear-gradient: at least two color stops */
+export type GradientStops = readonly [string, string, ...string[]];
+
 interface ThemeColors {
   background: string;
   foreground: string;
@@ -22,10 +25,10 @@ interface ThemeColors {
   border: string;
   input: string;
   gradients: {
-    primary: string[];
-    fire: string[];
-    dark: string[];
-    card: string[];
+    primary: GradientStops;
+    fire: GradientStops;
+    dark: GradientStops;
+    card: GradientStops;
   };
   shadows: {
     glow: string;

@@ -38,6 +38,24 @@ import AccountSettingsScreen from '../screens/AccountSettingsScreen';
 import NotificationPreferencesScreen from '../screens/NotificationPreferencesScreen';
 import UserManagementScreen from '../screens/UserManagementScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
+import BMICalculatorScreen from '../screens/BMICalculatorScreen';
+import ProgressScreen from '../screens/ProgressScreen';
+import AttendanceScreen from '../screens/AttendanceScreen';
+import GymsScreen from '../screens/GymsScreen';
+import GymDetailScreen from '../screens/GymDetailScreen';
+import LiveClassesScreen from '../screens/LiveClassesScreen';
+import LiveUsersScreen from '../screens/LiveUsersScreen';
+import {
+  MonthlyFeeScreen,
+  StatisticsScreen,
+  PendingApprovalsScreen,
+  PromotionsScreen,
+  NewsletterScreen,
+} from '../screens/HubAdminScreens';
+import { BlogScreen, BlogDetailScreen } from '../screens/BlogScreen';
+import ExercisesScreen from '../screens/ExercisesScreen';
+import FeedbackScreen from '../screens/FeedbackScreen';
+import { TrafficScreen, MembershipFeesScreen } from '../screens/HubMoreScreens';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -125,6 +143,24 @@ const RootStack = () => {
       <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} />
       <Stack.Screen name="NotificationPreferences" component={NotificationPreferencesScreen} />
       <Stack.Screen name="UserManagement" component={UserManagementScreen} />
+      <Stack.Screen name="BMICalculator" component={BMICalculatorScreen} options={{ title: 'BMI Calculator' }} />
+      <Stack.Screen name="Progress" component={ProgressScreen} options={{ title: 'Progress' }} />
+      <Stack.Screen name="Attendance" component={AttendanceScreen} options={{ title: 'Attendance' }} />
+      <Stack.Screen name="Gyms" component={GymsScreen} options={{ title: 'Gyms' }} />
+      <Stack.Screen name="GymDetail" component={GymDetailScreen} options={{ title: 'Gym' }} />
+      <Stack.Screen name="LiveClasses" component={LiveClassesScreen} options={{ title: 'Live Classes' }} />
+      <Stack.Screen name="LiveUsers" component={LiveUsersScreen} options={{ title: 'Live Users' }} />
+      <Stack.Screen name="MonthlyFee" component={MonthlyFeeScreen} options={{ title: 'Monthly Fee' }} />
+      <Stack.Screen name="Statistics" component={StatisticsScreen} options={{ title: 'Statistics' }} />
+      <Stack.Screen name="PendingApprovals" component={PendingApprovalsScreen} options={{ title: 'Approvals' }} />
+      <Stack.Screen name="Promotions" component={PromotionsScreen} options={{ title: 'Promotions' }} />
+      <Stack.Screen name="Newsletter" component={NewsletterScreen} options={{ title: 'Newsletter' }} />
+      <Stack.Screen name="Blog" component={BlogScreen} options={{ title: 'Blog' }} />
+      <Stack.Screen name="BlogDetail" component={BlogDetailScreen} options={{ title: 'Article' }} />
+      <Stack.Screen name="Exercises" component={ExercisesScreen} options={{ title: 'Exercises' }} />
+      <Stack.Screen name="Feedback" component={FeedbackScreen} options={{ title: 'Feedback' }} />
+      <Stack.Screen name="Traffic" component={TrafficScreen} options={{ title: 'Traffic' }} />
+      <Stack.Screen name="MembershipFees" component={MembershipFeesScreen} options={{ title: 'Membership Set' }} />
     </Stack.Navigator>
   );
 };
@@ -193,6 +229,24 @@ const linking = {
       AccountSettings: 'account-settings',
       NotificationPreferences: 'notification-preferences',
       UserManagement: 'user-management',
+      BMICalculator: 'bmi-calculator',
+      Progress: 'progress',
+      Attendance: 'attendance',
+      Gyms: 'gyms',
+      GymDetail: 'gyms/:ownerId',
+      LiveClasses: 'live-classes',
+      LiveUsers: 'live-users',
+      MonthlyFee: 'monthly-fee',
+      Statistics: 'statistics',
+      PendingApprovals: 'approvals',
+      Promotions: 'promotions',
+      Newsletter: 'newsletter',
+      Blog: 'blog',
+      BlogDetail: 'blog/:id',
+      Exercises: 'exercises',
+      Feedback: 'feedback',
+      Traffic: 'traffic',
+      MembershipFees: 'membership-set',
     },
   },
 };
@@ -203,7 +257,7 @@ const AppNavigator = () => {
   const { isLoading } = useAuth();
   const { colors } = useTheme();
   const [showOnboarding, setShowOnboarding] = React.useState<boolean | null>(null);
-  const [fadeAnim] = React.useState(new Animated.Value(0));
+  const [fadeAnim] = React.useState(new Animated.Value(1));
 
   React.useEffect(() => {
     let cancelled = false;

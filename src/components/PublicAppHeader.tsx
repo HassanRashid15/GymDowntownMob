@@ -233,8 +233,6 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 48,
     borderBottomRightRadius: 48,
     overflow: 'hidden',
-    borderBottomWidth: 1.5,
-    borderColor: 'rgba(232,142,131,0.35)',
   },
   row: {
     flexDirection: 'row',

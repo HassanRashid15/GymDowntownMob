@@ -13,12 +13,8 @@ import ScreenScrollView from '../components/ScreenScrollView';
 import HorizontalScrollView from '../components/HorizontalScrollView';
 import DottedBackground from '../components/DottedBackground';
 import { useTheme } from '../context/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
 import { allClasses, categories } from '../data/classes';
-
-let LinearGradient: any;
-if (Platform.OS !== 'web') {
-  LinearGradient = require('react-native-linear-gradient').default;
-}
 
 const SALMON = '#E88E83';
 const { width } = Dimensions.get('window');
@@ -47,7 +43,7 @@ const ClassesScreen: React.FC = ({ navigation }: any) => {
   const renderBookButton = (classId: string) => {
     const onPress = () => navigation.navigate('ClassDetail', { classId });
 
-    if (LinearGradient && Platform.OS !== 'web') {
+    if (Platform.OS !== 'web') {
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
           <LinearGradient
@@ -76,7 +72,7 @@ const ClassesScreen: React.FC = ({ navigation }: any) => {
       activeOpacity={0.92}
     >
       <Image source={{ uri: item.image }} style={styles.classImage} resizeMode="cover" />
-      {LinearGradient && Platform.OS !== 'web' ? (
+      {Platform.OS !== 'web' ? (
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.85)']}
           style={styles.imageGradient}
@@ -119,6 +115,11 @@ const ClassesScreen: React.FC = ({ navigation }: any) => {
       >
         <View style={styles.header}>
           <Text style={[styles.heroTitle, { color: colors.foreground }]}>OUR CLASSES</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('LiveClasses')} style={{ marginTop: 8 }}>
+            <Text style={{ color: SALMON, fontFamily: 'Inter_700Bold', letterSpacing: 1 }}>
+              LIVE SCHEDULE & BOOKING →
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Classes / Schedule toggle */}

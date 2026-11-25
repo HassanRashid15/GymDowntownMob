@@ -1,12 +1,14 @@
 import React from 'react';
 import { Text, TextStyle, StyleSheet, Platform, StyleProp } from 'react-native';
-import MaskedView from '@react-native-masked-view/masked-view';
+import NativeMaskedView from '@react-native-masked-view/masked-view';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 
-let LinearGradient: any;
-if (Platform.OS !== 'web') {
-  LinearGradient = require('react-native-linear-gradient').default;
-}
+// RN MaskedView typings lag React 19 JSX; cast keeps runtime behavior.
+const MaskedView = NativeMaskedView as unknown as React.ComponentType<{
+  maskElement: React.ReactElement;
+  children: React.ReactNode;
+}>;
 
 interface GradientTextProps {
   children: string;
@@ -16,7 +18,7 @@ interface GradientTextProps {
 const GradientText: React.FC<GradientTextProps> = ({ children, style }) => {
   const { colors } = useTheme();
 
-  if (Platform.OS === 'web' || !LinearGradient) {
+  if (Platform.OS === 'web') {
     return <Text style={[styles.text, { color: colors.primary }, style]}>{children}</Text>;
   }
 

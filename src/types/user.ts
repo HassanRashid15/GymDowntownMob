@@ -19,6 +19,21 @@ export const USER_BLOOD_GROUP_OPTIONS: UserBloodGroup[] = [
   'O-',
 ];
 
+export const AGE_OPTIONS = Array.from({ length: 80 }, (_, i) => ({
+  label: `${i + 18} years`,
+  value: `${i + 18}`,
+}));
+
+export const HEIGHT_OPTIONS = Array.from({ length: 100 }, (_, i) => ({
+  label: `${i + 100} cm`,
+  value: `${i + 100}`,
+}));
+
+export const WEIGHT_OPTIONS = Array.from({ length: 150 }, (_, i) => ({
+  label: `${i + 40} kg`,
+  value: `${i + 40}`,
+}));
+
 export interface PlatformUser {
   id: string;
   email: string;
@@ -32,6 +47,9 @@ export interface PlatformUser {
   gender?: UserGender;
   bloodGroup?: UserBloodGroup;
   gymName?: string;
+  age?: string;
+  height?: string;
+  weight?: string;
   createdAt: string;
 }
 

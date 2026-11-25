@@ -1,12 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, View, ViewStyle, TextStyle, ActivityIndicator, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
-
-// Conditional import for LinearGradient to avoid web compatibility issues
-let LinearGradient: any;
-if (Platform.OS !== 'web') {
-  LinearGradient = require('react-native-linear-gradient').default;
-}
 
 interface ButtonProps {
   title: string;
@@ -112,7 +107,7 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   if (variant === 'primary') {
-    if (Platform.OS === 'web' || !LinearGradient) {
+    if (Platform.OS === 'web') {
       return (
         <TouchableOpacity
           onPress={onPress}

@@ -99,7 +99,7 @@ const MessagingScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const [draft, setDraft] = useState('');
 
   const {

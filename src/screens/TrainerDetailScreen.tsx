@@ -13,13 +13,8 @@ import Svg, { Path, Circle, Polyline, Rect, Line } from 'react-native-svg';
 import ScreenScrollView from '../components/ScreenScrollView';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTrainers } from '../context/TrainersContext';
-
-let LinearGradient: any;
-if (Platform.OS !== 'web') {
-  LinearGradient = require('react-native-linear-gradient').default;
-}
-
 const SALMON = '#E88E83';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -139,7 +134,7 @@ const TrainerDetailScreen: React.FC = () => {
       );
     }
 
-    if (LinearGradient && Platform.OS !== 'web') {
+    if (Platform.OS !== 'web') {
       return (
         <TouchableOpacity onPress={handleBook} activeOpacity={0.85} style={styles.bookButtonWrap}>
           <LinearGradient
